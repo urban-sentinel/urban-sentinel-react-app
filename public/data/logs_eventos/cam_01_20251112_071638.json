@@ -1,0 +1,356 @@
+{
+    "camera_id": "cam_01",
+    "event_start_time": "2025-11-12T07:16:38.226725",
+    "event_end_time": "2025-11-12T07:16:42.292362",
+    "video_file": "cam_01_20251112_071638.mp4",
+    "log_file": "cam_01_20251112_071638.json",
+    "video_path": "C:\\Users\\Jose\\Desktop\\Tesis\\front-end\\urban-sentinel-front\\public\\data\\clips_guardados\\cam_01_20251112_071638.mp4",
+    "log_path": "C:\\Users\\Jose\\Desktop\\Tesis\\front-end\\urban-sentinel-front\\public\\data\\logs_eventos\\cam_01_20251112_071638.json",
+    "total_logs": 43,
+    "logs": [
+        {
+            "timestamp_ms": 1177,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 1214,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 1241,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 1565,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 1591,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 1630,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 1666,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 1696,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 1742,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 1788,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 1828,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 1868,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 1904,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 1934,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 1977,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2008,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2048,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2081,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2114,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2434,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2473,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2505,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2546,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2574,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2612,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2661,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2692,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2718,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2762,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2794,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2838,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2889,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2910,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2944,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 2976,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 3385,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 3416,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 3457,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 3492,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 3516,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 3559,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 3590,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        },
+        {
+            "timestamp_ms": 3624,
+            "probabilities": {
+                "Forcejeo": 0.7506331205368042,
+                "Patada": 0.1299179643392563,
+                "Golpe": 0.6323916912078857
+            }
+        }
+    ]
+}
