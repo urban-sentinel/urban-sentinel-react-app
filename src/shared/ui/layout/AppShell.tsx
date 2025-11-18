@@ -26,11 +26,11 @@ import {
     Logout as LogoutIcon,
     Notifications as NotificationsIcon,
     Search as SearchIcon,
-    CalendarToday as CalendarIcon,
     Menu as MenuIcon
 } from '@mui/icons-material';
 import type { NavItem } from '../../types/types';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../contexts/auth/infra/useAuth';
 
 const initialState = {
     user: {
@@ -67,6 +67,8 @@ export const AppShell: React.FC<AppShellProps> = ({
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
 
+    const { logout, isAdmin } = useAuth();
+    console.log(isAdmin)
     const [state, setState] = useState(initialState);
     const navigate = useNavigate();
 
@@ -85,12 +87,27 @@ export const AppShell: React.FC<AppShellProps> = ({
         navigate(route)
     };
 
-    const menuItems = [
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    }
+
+    const workerMenuItems = [
         { id: '/', icon: <HomeIcon />, label: 'Dashboard' },
         { id: '/cameras', icon: <VideocamIcon />, label: 'Cámaras' },
         { id: '/alerts', icon: <WarningIcon />, label: 'Alertas' },
         { id: '/history', icon: <HistoryIcon />, label: 'Historial' }
     ];
+
+    const adminMenuItems = [
+        { id: '/', icon: <HomeIcon />, label: 'Dashboard' },
+        { id: '/cameras', icon: <VideocamIcon />, label: 'Cámaras' },
+        { id: '/alerts', icon: <WarningIcon />, label: 'Alertas' },
+        { id: '/history', icon: <HistoryIcon />, label: 'Historial' },
+        { id: '/admin/workers', icon: <HistoryIcon />, label: 'Workers' }
+    ];
+
+    const menuItems = isAdmin ? adminMenuItems : workerMenuItems;
 
     // Sidebar Component
     const SidebarContent = () => (
@@ -159,6 +176,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             {/* Logout */}
             <ListItem disablePadding sx={{ mb: 2 }}>
                 <ListItemButton
+                    onClick={handleLogout}
                     sx={{
                         justifyContent: isMobile ? 'flex-start' : 'center',
                         px: isMobile ? 3 : 0,
@@ -279,7 +297,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                         </Box>
                     </Toolbar>
                 </AppBar>
-                { children }
+                {children}
             </Box>
         </Box>
     );

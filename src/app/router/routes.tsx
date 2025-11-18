@@ -13,6 +13,8 @@ import { CamerasPage } from "../../contexts/cameras/ui/CamerasPage";
 import { ClipsPage } from "../../contexts/clips/ui/ClipsPage";
 import { LoginPage } from "../../contexts/auth/ui/LoginPage";
 import { ValidationPage } from "../../contexts/auth/ui/ValidationPage";
+import { AdminRoute, PrivateRoute, PublicRoute } from "./Guards";
+import { AdminUserPage } from "../../contexts/admin/ui/AdminUserPage";
 
 function BlankPage({ title }: { title: string }) {
     return (
@@ -33,50 +35,88 @@ const navItems: NavItem[] = [
 export const browserRouter = createBrowserRouter([
     {
         path: "/login",
-        element: <LoginPage />,
+        element: (
+            <PublicRoute>
+                <LoginPage />
+            </PublicRoute>
+        ),
     },
     {
         path: "/validation",
-        element: <ValidationPage />, // o <ValidationPage />
+        element: (
+            <PublicRoute>
+                <ValidationPage />
+            </PublicRoute>
+        ),
     },
+    {
+        path: "*",
+        element: (
+            <PublicRoute>
+                <LoginPage />
+            </PublicRoute>
+        ),
+    },
+
+    // RUTAS PRIVADAS (si NO está logueado => redirige a /login)
     {
         path: "/",
         element: (
-            <AppShell navItems={navItems}>
-                <DashboardPage />
-            </AppShell>
+            <PrivateRoute>
+                <AppShell navItems={navItems}>
+                    <DashboardPage />
+                </AppShell>
+            </PrivateRoute>
         ),
     },
     {
         path: "/cameras",
         element: (
-            <AppShell navItems={navItems} headerTitle="Cámaras">
-                <CamerasPage />
-            </AppShell>
+            <PrivateRoute>
+                <AppShell navItems={navItems} headerTitle="Cámaras">
+                    <CamerasPage />
+                </AppShell>
+            </PrivateRoute>
         ),
     },
     {
         path: "/alerts",
         element: (
-            <AppShell navItems={navItems} headerTitle="Alertas">
-                <BlankPage title="Alertas" />
-            </AppShell>
+            <PrivateRoute>
+                <AppShell navItems={navItems} headerTitle="Alertas">
+                    <BlankPage title="Alertas" />
+                </AppShell>
+            </PrivateRoute>
         ),
     },
     {
         path: "/reports",
         element: (
-            <AppShell navItems={navItems} headerTitle="Reportes">
-                <BlankPage title="Reportes" />
-            </AppShell>
+            <PrivateRoute>
+                <AppShell navItems={navItems} headerTitle="Reportes">
+                    <BlankPage title="Reportes" />
+                </AppShell>
+            </PrivateRoute>
         ),
     },
     {
         path: "/history",
         element: (
-            <AppShell navItems={navItems} headerTitle="Historial">
-                <ClipsPage />
-            </AppShell>
+            <PrivateRoute>
+                <AppShell navItems={navItems} headerTitle="Historial">
+                    <ClipsPage />
+                </AppShell>
+            </PrivateRoute>
         ),
     },
+    {
+        path: "/admin/workers",
+        element: (
+            <AdminRoute>
+                <AppShell navItems={navItems} headerTitle="Admin Workers">
+                    <AdminUserPage />
+                </AppShell>
+            </AdminRoute>
+        ),
+    }
 ]);

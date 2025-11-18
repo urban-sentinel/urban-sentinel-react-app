@@ -1,5 +1,5 @@
 import { Badge, Box, Button, Card, CardActions, CardContent, CardHeader, Chip, Grid, Stack, Typography } from "@mui/material";
-import { useWsVideo } from "../infrastructure/useWsVideo";
+import { useWsVideo } from "../infra/useWsVideo";
 import { FiberManualRecord, OpenInNew, VideocamOff } from "@mui/icons-material";
 
 type CameraStatus = 'active' | 'disabled';

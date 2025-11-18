@@ -6,30 +6,8 @@ import {
 import type { SelectChangeEvent } from '@mui/material';
 import { CalendarMonth, FilterList, MoreVert, ArrowBack } from '@mui/icons-material';
 
-/* ============================
-   Config
-============================ */
-
-localStorage.setItem("access_token", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2IiwiaWF0IjoxNzYyOTQ4OTc5LCJleHAiOjE3NjI5NTI1Nzl9.zqNa8t9U0W1xRXxP6zn56YhxYlMozD_ul2qk4Oee3pw")
-
-
-const API_BASE =
-    (import.meta as any).env?.VITE_API_BASE?.replace(/\/$/, '') || 'http://127.0.0.1:8000';
-
-// Para pruebas locales (puedes quitar esta línea si ya lo pones en localStorage/env)
-
-const AUTH_TOKEN =
-    (import.meta as any).env?.VITE_AUTH_TOKEN ||
-    localStorage.getItem('access_token') ||
-    '';
-
-const authHeaders: HeadersInit = AUTH_TOKEN ? { Authorization: `Bearer ${AUTH_TOKEN}` } : {};
-
 type Category = 'Golpes' | 'Patadas' | 'Forcejeos';
 
-/* ============================
-   Tipos
-============================ */
 type EventoResponse = {
     id_evento: number;
     id_conexion: number;
@@ -66,13 +44,6 @@ type EventLogJson = {
     logs: Array<{ timestamp_ms: number; probabilities: Record<string, number> }>;
 };
 
-/* ============================
-   Helpers de rutas locales
-============================ */
-// Convierte a una ruta servida por la app (ej: "media/file.mp4" -> "/media/file.mp4").
-// Si ya es absoluta (empieza con "/") o es http(s), la deja igual.
-// Normaliza rutas a archivos estáticos servidos desde /public.
-// Acepta rutas absolutas del FS (Windows/Unix) y devuelve una URL válida: "/data/...".
 function normalizeStaticPath(p?: string | null): string {
     if (!p) return '';
     // Si ya es URL http(s), la dejamos tal cual
@@ -95,14 +66,23 @@ function normalizeStaticPath(p?: string | null): string {
     return s;
 }
 
-/* ============================
-   Hooks de datos
-============================ */
 function useEventos(idConexion: number) {
     const [data, setData] = useState<EventoResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // todo: mejorar esta parte
+    const API_BASE =
+        (import.meta as any).env?.VITE_API_BASE?.replace(/\/$/, '') || 'http://127.0.0.1:8000';
+
+    // Para pruebas locales (puedes quitar esta línea si ya lo pones en localStorage/env)
+
+    const AUTH_TOKEN =
+        (import.meta as any).env?.VITE_AUTH_TOKEN ||
+        localStorage.getItem('access_token') ||
+        '';
+
+    const authHeaders: HeadersInit = AUTH_TOKEN ? { Authorization: `Bearer ${AUTH_TOKEN}` } : {};
     const url = `${API_BASE}/api/eventos?limit=100&offset=0&id_conexion=${idConexion}`;
 
     useEffect(() => {
@@ -128,6 +108,18 @@ function useClip(idClip?: number | null) {
     const [clip, setClip] = useState<ClipResponse | null>(null);
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState<string | null>(null);
+
+    const API_BASE =
+        (import.meta as any).env?.VITE_API_BASE?.replace(/\/$/, '') || 'http://127.0.0.1:8000';
+
+    // Para pruebas locales (puedes quitar esta línea si ya lo pones en localStorage/env)
+
+    const AUTH_TOKEN =
+        (import.meta as any).env?.VITE_AUTH_TOKEN ||
+        localStorage.getItem('access_token') ||
+        '';
+
+    const authHeaders: HeadersInit = AUTH_TOKEN ? { Authorization: `Bearer ${AUTH_TOKEN}` } : {};
 
     useEffect(() => {
         if (!idClip) {

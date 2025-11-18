@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ChangeEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Box,
     Grid,
@@ -26,20 +27,30 @@ import {
     Info as InfoIcon,
     ArrowDropDown as ArrowDropDownIcon
 } from '@mui/icons-material';
+import { useAuth } from '../infra/useAuth';
+import type { RegisterUserRequest } from '../types/AuthTypes';
 
 // Estado inicial para los campos del formulario (solo UI)
 const initialFormState = {
-    phoneCountry: '+1',
-    phoneNumber: '345 567-23-56',
+    phoneCountry: '+51',
+    phoneNumber: '961 565 681',
     smsCode: ['', '', '', ''], // Un array para los 4 campos
-    email: 'youremail@gmail.com',
-    password: 'password123',
+    email: '',
+    password: '',
 };
 
 export const ValidationPage = () => {
+
+    const navigate = useNavigate();
+    const { register, error } = useAuth();
+
     // Estado para manejar el formulario
     const [formState, setFormState] = useState(initialFormState);
-    
+    const [generatedCode, setGeneratedCode] = useState<string>(''); // Código aleatorio generado
+    const [isPhoneValidated, setIsPhoneValidated] = useState<boolean>(false);
+    const [showSmsSent, setShowSmsSent] = useState<boolean>(false);
+    const [smsError, setSmsError] = useState<string | null>(null);
+
     // Estado para el toggle de la contraseña
     const [showPassword, setShowPassword] = useState(false);
     const handleClickShowPassword = () => setShowPassword((show) => !show);
@@ -55,7 +66,7 @@ export const ValidationPage = () => {
             [name]: value,
         }));
     };
-    
+
     // Handler para el Select de país
     const handleCountryChange = (event: SelectChangeEvent) => {
         setFormState(prev => ({
@@ -86,36 +97,78 @@ export const ValidationPage = () => {
         }
     };
 
+    const onSuccesfullRegister = () => {
+        const payload: RegisterUserRequest = {
+            nombre: "PENDING",
+            apellido: "PENDING",
+            email: formState.email,
+            password: formState.password,
+            rol: "WORKER",
+            phone: formState.phoneNumber
+        }
+
+        register(payload);
+
+        if (!error) {
+            navigate('/history');
+        }
+    }
+
+    const onValidatePhone = () => {
+        // Generar código aleatorio de 4 dígitos
+        const code = Math.floor(1000 + Math.random() * 9000).toString();
+        setGeneratedCode(code);
+        setShowSmsSent(true);
+        setIsPhoneValidated(false);
+        setFormState(prev => ({ ...prev, smsCode: ['', '', '', ''] }));
+        setSmsError(null);
+
+        console.log("Código SMS generado:", code); // DEBUG: quita esto en producción
+    };
+
+    useEffect(() => {
+        const fullCode = formState.smsCode.join('');
+        if (fullCode.length === 4) {
+            if (fullCode === generatedCode) {
+                setIsPhoneValidated(true);
+                setSmsError(null);
+            } else {
+                setSmsError('El código ingresado no es correcto.');
+                setIsPhoneValidated(false);
+            }
+        }
+    }, [formState.smsCode, generatedCode]);
+
     return (
         // Contenedor principal que ocupa toda la pantalla (100vh)
         <Grid container component="main" sx={{ height: '100vh' }}>
-            
+
             {/* 1. Columna Izquierda (Barra Lateral Azul) */}
             <Grid
                 // --- CORRECCIÓN AQUÍ ---
-                size={{ sm: 3, md: 2 }} 
+                size={{ sm: 3, md: 2 }}
                 sx={{
                     display: { xs: 'none', sm: 'flex' },
                     flexDirection: 'column',
                     justifyContent: 'flex-start', // Alineado arriba
                     p: { xs: 3, sm: 4, md: 5 }, // Ajuste de padding
-                    bgcolor: '#3b82f6', 
+                    bgcolor: '#3b82f6',
                     color: 'white',
                 }}
             >
                 {/* Contenedor interno para el contenido de la barra lateral */}
-                <Box sx={{ width: '100%' }}> 
+                <Box sx={{ width: '100%' }}>
                     {/* Logo y Título */}
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 5 }}>
                         <Box
                             component="img"
-                            src="/logo.svg" 
+                            src="/logo.svg"
                             alt="Logo UrbanSentinel"
                             sx={{ height: 48, width: 'auto', mr: 1.5 }}
                         />
-                        <Typography 
-                            variant="h5" 
-                            component="h1" 
+                        <Typography
+                            variant="h5"
+                            component="h1"
                             sx={{ fontWeight: 700 }}
                         >
                             UrbanSentinel
@@ -132,26 +185,26 @@ export const ValidationPage = () => {
                         <ListItem disablePadding>
                             <ListItemButton selected sx={{
                                 p: 0,
-                                '&.Mui-selected': { 
+                                '&.Mui-selected': {
                                     bgcolor: 'transparent',
                                     '&:hover': { bgcolor: 'transparent' }
                                 }
                             }}>
                                 <ListItemIcon sx={{ minWidth: 32 }}>
                                     {/* --- ÍCONO SVG DE LA CÁMARA/RECORD --- */}
-                                    <Box 
-                                        component="img" 
+                                    <Box
+                                        component="img"
                                         src="/record.svg" // <-- Asegúrate que esta ruta sea correcta
-                                        alt="Validar Teléfono Icono" 
-                                        sx={{ width: 24, height: 24 }} 
+                                        alt="Validar Teléfono Icono"
+                                        sx={{ width: 24, height: 24 }}
                                     />
                                 </ListItemIcon>
-                                <ListItemText 
+                                <ListItemText
                                     primary="Valida tu telefono"
-                                    primaryTypographyProps={{ 
-                                        fontWeight: 500, 
+                                    primaryTypographyProps={{
+                                        fontWeight: 500,
                                         fontSize: '1.1rem',
-                                        color: 'white' 
+                                        color: 'white'
                                     }}
                                 />
                             </ListItemButton>
@@ -164,7 +217,7 @@ export const ValidationPage = () => {
             <Grid
                 // --- CORRECCIÓN AQUÍ ---
                 size={{ xs: 12, sm: 9, md: 10 }}
-                component={Paper} 
+                component={Paper}
                 elevation={0}
                 square
                 sx={{
@@ -185,41 +238,41 @@ export const ValidationPage = () => {
                         alignItems: 'center', // Centra los elementos internos del formulario
                         width: '100%',
                         maxWidth: 550, // Ancho del form
-                        bgcolor: 'white', 
+                        bgcolor: 'white',
                         borderRadius: 2,
                         boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.05)',
                     }}
                 >
                     {/* Título STEP */}
-                    <Typography 
-                        variant="caption" 
-                        sx={{ 
-                            fontWeight: 700, 
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            fontWeight: 700,
                             color: '#94a3b8',
                             textTransform: 'uppercase',
-                            mb: 0.5 
+                            mb: 0.5
                         }}
                     >
                         STEP 1/1
                     </Typography>
-                    
+
                     {/* Título principal */}
-                    <Typography 
-                        variant="h4" 
-                        component="h1" 
-                        sx={{ 
-                            fontWeight: 700, 
-                            mb: 3, 
-                            color: '#1e2b3b' 
+                    <Typography
+                        variant="h4"
+                        component="h1"
+                        sx={{
+                            fontWeight: 700,
+                            mb: 3,
+                            color: '#1e2b3b'
                         }}
                     >
                         Valida tu telefono
                     </Typography>
-                    
+
                     {/* --- INICIO DEL FORMULARIO --- */}
 
                     {/* Campo Telefono */}
-                    <Box sx={{ width: '100%' }}> 
+                    <Box sx={{ width: '100%' }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#475569', mb: 1, textAlign: 'left' }}>
                             Telefono
                         </Typography>
@@ -233,9 +286,7 @@ export const ValidationPage = () => {
                                     '& fieldset': { borderColor: '#cbd5e1' }
                                 }}
                             >
-                                <MenuItem value="+1">+1</MenuItem>
                                 <MenuItem value="+51">+51</MenuItem>
-                                <MenuItem value="+44">+44</MenuItem>
                             </Select>
                             <TextField
                                 fullWidth
@@ -244,11 +295,39 @@ export const ValidationPage = () => {
                                 value={formState.phoneNumber}
                                 onChange={handleInputChange}
                             />
+                            <Button
+                                variant="contained"
+                                size="large"
+                                onClick={onValidatePhone}
+                                sx={{
+                                    py: 1.5,
+                                    px: 4,
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    fontSize: '1rem',
+                                    bgcolor: '#3b82f6',
+                                    '&:hover': {
+                                        bgcolor: '#2563eb',
+                                    }
+                                }}
+                            >
+                                Validar
+                            </Button>
                         </Box>
                     </Box>
 
+                    {showSmsSent && (
+                        <Alert
+                            icon={<InfoIcon fontSize="inherit" />}
+                            severity="info"
+                            sx={{ width: '100%', mb: 2.5, bgcolor: '#eff6ff', color: '#2563eb' }}
+                        >
+                            SMS ha sido enviado al número {formState.phoneCountry} {formState.phoneNumber}
+                        </Alert>
+                    )}
+
                     {/* Campo Codigo SMS */}
-                    <Box sx={{ width: '100%' }}> 
+                    <Box sx={{ width: '100%' }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#475569', mb: 1, textAlign: 'left' }}>
                             Codigo SMS
                         </Typography>
@@ -260,27 +339,37 @@ export const ValidationPage = () => {
                                     variant="outlined"
                                     value={digit}
                                     onChange={(e: ChangeEvent<HTMLInputElement>) => handleSmsChange(e, index)}
-                                    inputProps={{ 
-                                        maxLength: 1, 
-                                        style: { textAlign: 'center', fontSize: '1.2rem' } 
+                                    inputProps={{
+                                        maxLength: 1,
+                                        style: { textAlign: 'center', fontSize: '1.2rem' }
                                     }}
-                                    sx={{ flexGrow: 1 }} 
+                                    sx={{ flexGrow: 1 }}
                                 />
                             ))}
                         </Box>
                     </Box>
 
-                    {/* Alerta de Info */}
-                    <Alert 
-                        icon={<InfoIcon fontSize="inherit" />} 
-                        severity="info"
-                        sx={{ width: '100%', mb: 2.5, bgcolor: '#eff6ff', color: '#2563eb' }}
-                    >
-                        SMS a sido enviado al numero +1 345 673-56-67
-                    </Alert>
+
+                    {smsError && (
+                        <Alert
+                            severity="error"
+                            sx={{ width: '100%', mb: 2.5 }}
+                        >
+                            {smsError}
+                        </Alert>
+                    )}
+
+                    {isPhoneValidated && (
+                        <Alert
+                            severity="success"
+                            sx={{ width: '100%', mb: 2.5 }}
+                        >
+                            Teléfono validado correctamente
+                        </Alert>
+                    )}
 
                     {/* Campo Correo */}
-                    <Box sx={{ width: '100%' }}> 
+                    <Box sx={{ width: '100%' }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#475569', mb: 1, textAlign: 'left' }}>
                             Correo
                         </Typography>
@@ -291,12 +380,13 @@ export const ValidationPage = () => {
                             variant="outlined"
                             value={formState.email}
                             onChange={handleInputChange}
+                            disabled={!isPhoneValidated}
                             sx={{ mb: 2.5 }}
                         />
                     </Box>
 
                     {/* Campo Contraseña */}
-                    <Box sx={{ width: '100%' }}> 
+                    <Box sx={{ width: '100%' }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#475569', mb: 1, textAlign: 'left' }}>
                             Crea tu contraseña
                         </Typography>
@@ -306,6 +396,7 @@ export const ValidationPage = () => {
                             variant="outlined"
                             type={showPassword ? 'text' : 'password'}
                             value={formState.password}
+                            disabled={!isPhoneValidated}
                             onChange={handleInputChange}
                             InputProps={{
                                 endAdornment: (
@@ -320,25 +411,36 @@ export const ValidationPage = () => {
                                     </InputAdornment>
                                 ),
                             }}
-                            sx={{ mb: 4 }} 
+                            sx={{ mb: 4 }}
                         />
                     </Box>
-                    
+
+                    {!!error && (
+                        <Alert
+                            severity="error"
+                            sx={{ width: '100%', mb: 2.5 }}
+                        >
+                            {error}
+                        </Alert>
+                    )}
+
+
                     {/* Botón Registrarse */}
                     <Box sx={{ width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
                         <Button
                             variant="contained"
                             size="large"
                             endIcon={<ArrowForwardIcon />}
+                            onClick={onSuccesfullRegister}
                             sx={{
                                 py: 1.5,
                                 px: 4,
                                 textTransform: 'none',
                                 fontWeight: 600,
                                 fontSize: '1rem',
-                                bgcolor: '#3b82f6', 
+                                bgcolor: '#3b82f6',
                                 '&:hover': {
-                                    bgcolor: '#2563eb', 
+                                    bgcolor: '#2563eb',
                                 }
                             }}
                         >

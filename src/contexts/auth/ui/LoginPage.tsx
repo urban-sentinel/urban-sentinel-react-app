@@ -33,15 +33,18 @@ export const LoginPage = () => {
     const { login, loading, error } = useAuth();
     const navigate = useNavigate();
 
-    async function onSubmit(e: React.FormEvent) {
+    const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             await login(formState.email, formState.password);
-            // si tu hook guarda el token, aquí ya puedes redirigir:
-            navigate('/history');
+            navigate('/');
         } catch {
             // el hook ya expone `error`; aquí no necesitas nada más
         }
+    }
+
+    const onCreateNewAccount = () => {
+        navigate('/validation')
     }
 
     return (
@@ -165,6 +168,12 @@ export const LoginPage = () => {
                             />
                             <Link href="#" variant="body2" sx={{ fontWeight: 500, color: '#3b82f6' }}>
                                 Me olvidé mi contraseña
+                            </Link>
+                        </Box>
+
+                        <Box sx={{ mb: 3 }}>
+                            <Link href='#' onClick={onCreateNewAccount} variant="body2" sx={{ fontWeight: 500, color: '#3b82f6' }}>
+                                Crear nueva cuenta
                             </Link>
                         </Box>
 

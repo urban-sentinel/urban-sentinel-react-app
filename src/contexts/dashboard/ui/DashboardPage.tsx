@@ -26,7 +26,7 @@ import {
     CalendarMonth
 } from '@mui/icons-material';
 
-import { initialState, type AlertSeverity, type CameraStatus } from '../domain/Types';
+import { initialState, type AlertSeverity, type CameraStatus } from '../types/Types';
 
 export const DashboardPage = () => {
 

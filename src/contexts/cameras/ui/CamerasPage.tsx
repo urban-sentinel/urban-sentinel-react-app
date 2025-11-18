@@ -4,7 +4,7 @@ import {
     IconButton, Grid, Stack, Typography, Badge
 } from '@mui/material';
 import { CalendarMonth, VideocamOff, ArrowBack, OpenInNew, FiberManualRecord, CameraAlt } from '@mui/icons-material';
-import { useWsVideo } from '../infrastructure/useWsVideo';
+import { useWsVideo } from '../infra/useWsVideo';
 import { CameraCard } from './CameraCard';
 
 type CameraStatus = 'active' | 'disabled';
