@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { HttpClient } from "../../../app/services/httpClient";
 import { AuthService } from "../services/AuthService";
-import { TOKEN_KEY, EXPIRES_KEY, type LoginUserRequest, type RegisterUserRequest } from "../types/AuthTypes";
+import { TOKEN_KEY, EXPIRES_KEY, type LoginUserRequest, type RegisterUserRequest, type UserData } from "../types/AuthTypes";
 
 const httpClient = new HttpClient();
 const authService = new AuthService(httpClient);
@@ -43,7 +43,7 @@ export function isAdmin(): boolean {
         return rol === 'ADMIN';
     }
     return false;
-}   
+}
 
 export function authHeaders(): HeadersInit {
     const t = getToken();
@@ -57,6 +57,51 @@ export function useAuth() {
     const token = useMemo(() => getToken(), []);
 
     const isAuthenticated = !!token;
+
+    const getAllUsers = useCallback(async (): Promise<UserData[]> => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const data = await authService.getAllUsers(); // Promise<UserData[]>
+            if (!data) {
+                throw new Error("No se pudieron obtener los usuarios");
+            }
+            return data;
+        } catch (e: any) {
+            setError(e?.message ?? "Error al obtener los usuarios");
+            return []; // 👈 muy importante: nunca devolvemos undefined
+        } finally {
+            setLoading(false);
+        }
+    }, [authService]);
+
+    const deleteUser = useCallback(async (userId: number): Promise<void> => {
+        setLoading(true);
+        setError(null);
+        try {
+            await authService.deleteUser(userId);
+        } catch (e: any) {
+            setError(e?.message ?? "Error al eliminar el usuario");
+        }
+        finally {
+            setLoading(false);
+        }
+    }, [authService]);
+
+    const resetPasswordRequest = useCallback(async (email: string) => {
+        setLoading(true);
+        setError(null);
+        try {
+            await authService.postForgotPassword(email);
+        }
+        catch (e: any) {
+            setError(e?.message ?? "Error al solicitar el reseteo de contraseña");
+        }
+        finally {
+            setLoading(false);
+        }
+    }, []);
 
     const register = useCallback(async (request: RegisterUserRequest) => {
         setLoading(true);
@@ -82,6 +127,9 @@ export function useAuth() {
             return data;
         } catch (e: any) {
             setError(e?.message ?? "Error de registro");
+        }
+        finally {
+            setLoading(false);
         }
     }, []);
 
@@ -123,5 +171,5 @@ export function useAuth() {
         localStorage.removeItem("user_email");
     }, []);
 
-    return { loading, error, isAuthenticated, token: getToken(), isAdmin: isAdmin(), login, logout, register, user };
+    return { loading, error, isAuthenticated, token: getToken(), isAdmin: isAdmin(), login, logout, register, resetPasswordRequest, getAllUsers, deleteUser, user };
 }

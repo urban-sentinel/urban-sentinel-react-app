@@ -90,6 +90,10 @@ export class HttpClient {
         return this.request<T, B>({ method: "PUT", path, body, withAuth });
     }
 
+    patch<T = unknown, B = unknown>(path: string, body?: B, withAuth = true) {
+        return this.request<T, B>({ method: "PATCH", path, body, withAuth });
+    }
+
     delete<T = unknown>( path: string, params?: QueryParams, withAuth = true) {
         return this.request<T>({ method: "DELETE", path, params, withAuth });
     }

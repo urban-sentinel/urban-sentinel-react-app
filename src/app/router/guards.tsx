@@ -33,24 +33,14 @@ export const PublicRoute = ({ children }: GuardProps) => {
     return <>{children}</>;
 };
 
-type RoleRouteProps = GuardProps & {
-    allowedRoles: string[]; // por ej. ['ADMIN']
-};
-
-export const RoleRoute = ({ children, allowedRoles }: RoleRouteProps) => {
-    const { user, loading, isAuthenticated } = useAuth();
+export const RoleRoute = ({ children }: GuardProps) => {
+    const { loading, isAdmin } = useAuth();
 
     if (loading) {
         return <div>Cargando...</div>;
     }
 
-    if (!isAuthenticated || !user) {
-        return <Navigate to="/login" replace />;
-    }
-
-    const userRole = user.rol ?? user.rol; // adapta según tu modelo
-
-    if (!allowedRoles.includes(userRole)) {
+    if (!isAdmin) {
         // está logueado pero NO tiene rol permitido
         return <Navigate to="/" replace />; // o a una página 403
     }
@@ -59,5 +49,5 @@ export const RoleRoute = ({ children, allowedRoles }: RoleRouteProps) => {
 };
 
 export const AdminRoute = ({ children }: GuardProps) => (
-    <RoleRoute allowedRoles={["ADMIN"]}>{children}</RoleRoute>
+    <RoleRoute>{children}</RoleRoute>
 );

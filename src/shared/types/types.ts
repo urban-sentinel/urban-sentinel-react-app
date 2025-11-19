@@ -6,3 +6,4 @@ export type NavItem = {
     icon?: React.ReactNode;
     badgeContent?: number;
 };
+

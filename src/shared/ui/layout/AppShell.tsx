@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Box,
     Drawer,
@@ -16,7 +16,9 @@ import {
     TextField,
     InputAdornment,
     useMediaQuery,
-    useTheme
+    useTheme,
+    Snackbar,
+    Alert
 } from '@mui/material';
 import {
     Home as HomeIcon,
@@ -26,11 +28,15 @@ import {
     Logout as LogoutIcon,
     Notifications as NotificationsIcon,
     Search as SearchIcon,
-    Menu as MenuIcon
+    Menu as MenuIcon,
+    Report,
+    AdminPanelSettings
 } from '@mui/icons-material';
 import type { NavItem } from '../../types/types';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/auth/infra/useAuth';
+import type { NotificationData } from '../../../contexts/clips/types/NotificationTypes';
+import { useNotificationStream } from '../../hooks/useNotificationStream';
 
 const initialState = {
     user: {
@@ -68,9 +74,18 @@ export const AppShell: React.FC<AppShellProps> = ({
     const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
 
     const { logout, isAdmin } = useAuth();
-    console.log(isAdmin)
     const [state, setState] = useState(initialState);
+    const [snack, setSnack] = useState<NotificationData | null>(null);
+
     const navigate = useNavigate();
+    const destinatario = `usuario:${state.user.id}`;
+    const { latest } = useNotificationStream(destinatario);
+
+    useEffect(() => {
+        if (latest) {
+            setSnack(latest);
+        }
+    }, [latest]);
 
     const toggleSidebar = () => {
         setState(prev => ({
@@ -96,7 +111,8 @@ export const AppShell: React.FC<AppShellProps> = ({
         { id: '/', icon: <HomeIcon />, label: 'Dashboard' },
         { id: '/cameras', icon: <VideocamIcon />, label: 'Cámaras' },
         { id: '/alerts', icon: <WarningIcon />, label: 'Alertas' },
-        { id: '/history', icon: <HistoryIcon />, label: 'Historial' }
+        { id: '/history', icon: <HistoryIcon />, label: 'Historial' },
+        { id: '/reports', icon: <Report />, label: 'Reportes' }
     ];
 
     const adminMenuItems = [
@@ -104,7 +120,8 @@ export const AppShell: React.FC<AppShellProps> = ({
         { id: '/cameras', icon: <VideocamIcon />, label: 'Cámaras' },
         { id: '/alerts', icon: <WarningIcon />, label: 'Alertas' },
         { id: '/history', icon: <HistoryIcon />, label: 'Historial' },
-        { id: '/admin/workers', icon: <HistoryIcon />, label: 'Workers' }
+        { id: '/reports', icon: <Report />, label: 'Reportes' },
+        { id: '/admin/workers', icon: <AdminPanelSettings />, label: 'Workers' }
     ];
 
     const menuItems = isAdmin ? adminMenuItems : workerMenuItems;
@@ -299,6 +316,21 @@ export const AppShell: React.FC<AppShellProps> = ({
                 </AppBar>
                 {children}
             </Box>
+            <Snackbar
+                open={!!snack}
+                autoHideDuration={6000}
+                onClose={() => setSnack(null)}
+                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+                <Alert
+                    onClose={() => setSnack(null)}
+                    severity="warning"
+                    variant="filled"
+                    sx={{ width: '100%' }}
+                >
+                    {snack?.mensaje}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 }

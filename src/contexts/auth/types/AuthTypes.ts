@@ -8,6 +8,15 @@ export type RegisterUserRequest = {
     phone: string;
 };
 
+export interface UserData {
+    id_usuario: number;
+    nombre: string;
+    apellido: string;
+    email: string;
+    rol: string;
+    phone: string;
+}
+
 export type LoginUserRequest = {
     email: string;
     password: string;

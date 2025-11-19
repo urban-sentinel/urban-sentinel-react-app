@@ -13,8 +13,11 @@ import { CamerasPage } from "../../contexts/cameras/ui/CamerasPage";
 import { ClipsPage } from "../../contexts/clips/ui/ClipsPage";
 import { LoginPage } from "../../contexts/auth/ui/LoginPage";
 import { ValidationPage } from "../../contexts/auth/ui/ValidationPage";
-import { AdminRoute, PrivateRoute, PublicRoute } from "./Guards";
+import { AdminRoute, PrivateRoute, PublicRoute } from "./guards";
 import { AdminUserPage } from "../../contexts/admin/ui/AdminUserPage";
+import { ChangePasswordPage } from "../../contexts/auth/ui/ChangePasswordPage";
+import ResetPasswordPage from "../../contexts/auth/ui/ResetPasswordPage";
+import { ReportsPage } from "../../contexts/reports/ui/ReportPage";
 
 function BlankPage({ title }: { title: string }) {
     return (
@@ -46,6 +49,22 @@ export const browserRouter = createBrowserRouter([
         element: (
             <PublicRoute>
                 <ValidationPage />
+            </PublicRoute>
+        ),
+    },
+    {
+        path: "/change-password",
+        element: (
+            <PublicRoute>
+                <ChangePasswordPage />
+            </PublicRoute>
+        ),
+    },
+        {
+        path: "/reset-password",
+        element: (
+            <PublicRoute>
+                <ResetPasswordPage />
             </PublicRoute>
         ),
     },
@@ -94,7 +113,7 @@ export const browserRouter = createBrowserRouter([
         element: (
             <PrivateRoute>
                 <AppShell navItems={navItems} headerTitle="Reportes">
-                    <BlankPage title="Reportes" />
+                    <ReportsPage />
                 </AppShell>
             </PrivateRoute>
         ),

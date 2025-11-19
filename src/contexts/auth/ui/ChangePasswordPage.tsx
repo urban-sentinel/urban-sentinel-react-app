@@ -1,26 +1,20 @@
-// LoginPage.tsx
+// ChangePasswordPage.tsx
 import { useState } from 'react';
 import {
-    Box, Grid, Paper, Typography, TextField, Button, Checkbox,
-    FormControlLabel, Link, InputAdornment, IconButton, Alert, CircularProgress
+    Box, Grid, Paper, Typography, TextField, Button, Alert, CircularProgress
 } from '@mui/material';
-import { Visibility, VisibilityOff, ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
+import { ArrowForward as ArrowForwardIcon, ArrowBack } from '@mui/icons-material';
 import { useAuth } from '../infra/useAuth';
 import { useNavigate } from 'react-router-dom';
 
-// Estado inicial (solo UI)
+
 const initialFormState = {
     email: 'root@root.com',
-    password: '123456',
-    rememberMe: true,
+    messageSent: false,
 };
 
-export const LoginPage = () => {
+export const ChangePasswordPage = () => {
     const [formState, setFormState] = useState(initialFormState);
-    const [showPassword, setShowPassword] = useState(false);
-
-    const handleClickShowPassword = () => setShowPassword((s) => !s);
-    const handleMouseDownPassword = (e: React.MouseEvent<HTMLButtonElement>) => e.preventDefault();
 
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, checked, type } = event.target;
@@ -30,25 +24,18 @@ export const LoginPage = () => {
         }));
     };
 
-    const { login, loading, error } = useAuth();
+    const { resetPasswordRequest, loading } = useAuth();
+
     const navigate = useNavigate();
 
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await login(formState.email, formState.password);
-            navigate('/');
+            await resetPasswordRequest(formState.email);
+            setFormState(prev => ({ ...prev, messageSent: true }));
         } catch {
             // el hook ya expone `error`; aquí no necesitas nada más
         }
-    }
-
-    const onCreateNewAccount = () => {
-        navigate('/validation')
-    }
-
-    const onChangePassword = () => {
-        navigate('/change-password')
     }
 
     return (
@@ -94,6 +81,34 @@ export const LoginPage = () => {
             >
                 <Box
                     sx={{
+                        width: '100%',
+                        maxWidth: 450,
+                        display: 'flex',
+                        justifyContent: 'flex-start',
+                        px: { xs: 3, md: 5 },
+                        mb: 1,
+                    }}
+                >
+                    <Button
+                        onClick={() => navigate('/login')}
+                        startIcon={<ArrowBack />}
+                        sx={{
+                            textTransform: 'none',
+                            fontWeight: 500,
+                            color: '#0f172a',
+                            px: 0,
+                            minWidth: 0,
+                            '&:hover': {
+                                backgroundColor: 'transparent',
+                                color: '#1d4ed8',
+                            },
+                        }}
+                    >
+                        Volver
+                    </Button>
+                </Box>
+                <Box
+                    sx={{
                         mx: 4,
                         p: { xs: 3, md: 5 },
                         display: 'flex',
@@ -107,18 +122,11 @@ export const LoginPage = () => {
                     }}
                 >
                     <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 3, color: '#1e2b3b' }}>
-                        Inicia Sesión
+                        Cambiar contraseña
                     </Typography>
 
                     {/* FORM: el submit dispara la solicitud */}
                     <Box component="form" onSubmit={onSubmit} sx={{ width: '100%' }}>
-                        {/* Error del hook */}
-                        {error && (
-                            <Alert severity="error" sx={{ mb: 2 }}>
-                                {typeof error === 'string' ? error : 'Credenciales inválidas o error de red.'}
-                            </Alert>
-                        )}
-
                         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#475569', mb: 1 }}>
                             Correo electrónico
                         </Typography>
@@ -130,52 +138,11 @@ export const LoginPage = () => {
                             onChange={handleInputChange}
                             sx={{ mb: 2.5 }}
                         />
-
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#475569', mb: 1 }}>
-                            Contraseña
-                        </Typography>
-                        <TextField
-                            fullWidth
-                            name="password"
-                            variant="outlined"
-                            type={showPassword ? 'text' : 'password'}
-                            value={formState.password}
-                            onChange={handleInputChange}
-                            InputProps={{
-                                endAdornment: (
-                                    <InputAdornment position="end">
-                                        <IconButton
-                                            onClick={handleClickShowPassword}
-                                            onMouseDown={handleMouseDownPassword}
-                                            edge="end"
-                                        >
-                                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                                        </IconButton>
-                                    </InputAdornment>
-                                ),
-                            }}
-                            sx={{ mb: 2 }}
-                        />
-
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', mb: 3 }}>
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        name="rememberMe"
-                                        checked={formState.rememberMe}
-                                        onChange={handleInputChange}
-                                        color="primary"
-                                    />
-                                }
-                                label="Acuérdate de mi"
-                                sx={{ color: '#475569' }}
-                            />
-                            <Box >
-                                <Link href='#' onClick={onCreateNewAccount} variant="body2" sx={{ fontWeight: 500, color: '#3b82f6' }}>
-                                    Crear nueva cuenta
-                                </Link>
-                            </Box>
-                        </Box>
+                        {formState.messageSent && (
+                            <Alert severity="error" sx={{ mb: 2 }}>
+                                "Si existe una cuenta asociada a ese correo, se ha enviado un email con las instrucciones para cambiar la contraseña."
+                            </Alert>
+                        )}
                         <Button
                             fullWidth
                             type="submit"
@@ -192,13 +159,8 @@ export const LoginPage = () => {
                                 '&:hover': { bgcolor: '#2563eb' },
                             }}
                         >
-                            {loading ? <CircularProgress size={24} /> : 'Iniciar sesión'}
+                            {loading ? <CircularProgress size={24} /> : 'Enviar correo'}
                         </Button>
-                        <Box sx={{ mt: 3 }}>
-                            <Link href="#" onClick={onChangePassword} variant="body2" sx={{ fontWeight: 500, color: '#3b82f6' }}>
-                                Me olvidé mi contraseña
-                            </Link>
-                        </Box>
                     </Box>
                 </Box>
             </Grid>
