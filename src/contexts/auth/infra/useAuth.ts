@@ -21,6 +21,7 @@ function saveToken(token: string, expiresIn?: number) {
 function saveUserInfo(user: RegisterUserRequest) {
     localStorage.setItem("user_email", user.email);
     localStorage.setItem("user_rol", user.rol);
+    localStorage.setItem("user_names", user.nombre + " " + user.apellido)
 }
 
 export function getToken(): string | null {
@@ -117,6 +118,7 @@ export function useAuth() {
             // Get User Info
             const userInfo = await authService.getUserInfoByEmail(request.email);
             if (!userInfo) {
+                setError(userInfo);
                 throw new Error("No se pudo obtener la información del usuario");
             }
 

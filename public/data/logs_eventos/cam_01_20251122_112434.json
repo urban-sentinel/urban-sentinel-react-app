@@ -1,0 +1,284 @@
+{
+    "camera_id": "cam_01",
+    "event_start_time": "2025-11-22T11:24:37.525463",
+    "event_end_time": "2025-11-22T11:24:39.632996",
+    "video_file": "cam_01_20251122_112434.mp4",
+    "log_file": "cam_01_20251122_112434.json",
+    "video_path": "C:\\Users\\Jose\\Desktop\\Tesis\\front-end\\urban-sentinel-front\\public\\data\\clips_guardados\\cam_01_20251122_112434.mp4",
+    "log_path": "C:\\Users\\Jose\\Desktop\\Tesis\\front-end\\urban-sentinel-front\\public\\data\\logs_eventos\\cam_01_20251122_112434.json",
+    "total_logs": 34,
+    "logs": [
+        {
+            "timestamp_ms": 300,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 326,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 356,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 653,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 689,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 728,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 771,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 803,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 835,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 873,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 902,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 936,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 962,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 999,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1033,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1069,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1110,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1146,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1168,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1442,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1475,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1509,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1549,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1575,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1609,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1645,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1683,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1718,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1746,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1782,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1818,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1854,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1891,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        },
+        {
+            "timestamp_ms": 1923,
+            "probabilities": {
+                "Forcejeo": 0.8942126631736755,
+                "Patada": 0.0419544093310833,
+                "Golpe": 0.24300560355186462
+            }
+        }
+    ]
+}

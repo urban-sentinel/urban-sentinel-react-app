@@ -102,7 +102,7 @@ export const ValidationPage = () => {
         }
 
         register(payload);
-        if (!error) {
+        if (error == "") {
             navigate('/');
         }
     }

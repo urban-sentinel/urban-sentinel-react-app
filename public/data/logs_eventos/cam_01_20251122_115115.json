@@ -1,0 +1,260 @@
+{
+    "camera_id": "cam_01",
+    "event_start_time": "2025-11-22T11:51:17.737907",
+    "event_end_time": "2025-11-22T11:51:20.138755",
+    "video_file": "cam_01_20251122_115115.mp4",
+    "log_file": "cam_01_20251122_115115.json",
+    "video_path": "C:\\Users\\Jose\\Desktop\\Tesis\\front-end\\urban-sentinel-front\\public\\data\\clips_guardados\\cam_01_20251122_115115.mp4",
+    "log_path": "C:\\Users\\Jose\\Desktop\\Tesis\\front-end\\urban-sentinel-front\\public\\data\\logs_eventos\\cam_01_20251122_115115.json",
+    "total_logs": 31,
+    "logs": [
+        {
+            "timestamp_ms": 273,
+            "probabilities": {
+                "Forcejeo": 0.8604456186294556,
+                "Patada": 0.06355290114879608,
+                "Golpe": 0.8468066453933716
+            }
+        },
+        {
+            "timestamp_ms": 309,
+            "probabilities": {
+                "Forcejeo": 0.8604456186294556,
+                "Patada": 0.06355290114879608,
+                "Golpe": 0.8468066453933716
+            }
+        },
+        {
+            "timestamp_ms": 346,
+            "probabilities": {
+                "Forcejeo": 0.8604456186294556,
+                "Patada": 0.06355290114879608,
+                "Golpe": 0.8468066453933716
+            }
+        },
+        {
+            "timestamp_ms": 688,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 721,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 758,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 795,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 832,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 865,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 901,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 932,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 968,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1010,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1032,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1070,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1473,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1506,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1546,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1586,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1618,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1647,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1680,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1721,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1757,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1784,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1822,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1858,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1894,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1939,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 1970,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        },
+        {
+            "timestamp_ms": 2000,
+            "probabilities": {
+                "Forcejeo": 0.8525802493095398,
+                "Patada": 0.0696021318435669,
+                "Golpe": 0.8924675583839417
+            }
+        }
+    ]
+}

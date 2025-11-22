@@ -37,6 +37,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/auth/infra/useAuth';
 import type { NotificationData } from '../../../contexts/clips/types/NotificationTypes';
 import { useNotificationStream } from '../../hooks/useNotificationStream';
+import { useAlertSound } from '../../hooks/useAlarmSound';
 
 const initialState = {
     user: {
@@ -48,8 +49,8 @@ const initialState = {
     ui: {
         sidebarOpen: false,
         dateRange: {
-            from: 'Nov 16, 2020',
-            to: 'Dec 16, 2020'
+            from: 'Nov 16, 2025',
+            to: 'Nov 22, 2025'
         },
         search: '',
         currentRoute: '/'
@@ -80,11 +81,27 @@ export const AppShell: React.FC<AppShellProps> = ({
     const navigate = useNavigate();
     const destinatario = `usuario:${state.user.id}`;
     const { latest } = useNotificationStream(destinatario);
+    const { playAlert } = useAlertSound();
+
+    useEffect(() => {
+        const user_names = localStorage.getItem("user_names")
+        if (user_names) {
+            setState(prev => ({
+                ...prev,
+                user: {
+                    ...prev.user,
+                    name: user_names
+                }
+            }))
+        }
+    }, [])
+    
 
     useEffect(() => {
         if (latest) {
             setSnack(latest);
         }
+        playAlert();
     }, [latest]);
 
     const toggleSidebar = () => {
@@ -320,7 +337,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 open={!!snack}
                 autoHideDuration={6000}
                 onClose={() => setSnack(null)}
-                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             >
                 <Alert
                     onClose={() => setSnack(null)}
