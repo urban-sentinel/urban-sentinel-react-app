@@ -104,36 +104,43 @@ export function useAuth() {
         }
     }, []);
 
-    const register = useCallback(async (request: RegisterUserRequest) => {
-        setLoading(true);
-        setError(null);
-        setUser(null);
-        try {
-            const data = await authService.register(request);
+    const register = useCallback(
+        async (request: RegisterUserRequest): Promise<boolean> => {
+            setLoading(true);
+            setError(null);
+            setUser(null);
 
-            if (!data || !data.access_token) {
-                throw new Error("Respuesta inválida");
+            try {
+                const data = await authService.register(request);
+
+                if (!data || !data.access_token) {
+                    throw new Error("Respuesta inválida");
+                }
+
+                // Get User Info
+                const userInfo = await authService.getUserInfoByEmail(request.email);
+                if (!userInfo) {
+                    throw new Error("No se pudo obtener la información del usuario");
+                }
+
+                setUser(userInfo);
+                saveUserInfo(userInfo);
+                saveToken(data.access_token, data.expires_in);
+
+                return true; // 👈 éxito
+            } catch (e: any) {
+                const msg = e?.message ?? "Error de registro";
+                console.error("Error en register:", msg);
+                setError(msg);
+                return false; // 👈 falló
+            } finally {
+                setLoading(false);
             }
+        },
+        [authService, saveToken, saveUserInfo]
+    );
 
-            // Get User Info
-            const userInfo = await authService.getUserInfoByEmail(request.email);
-            if (!userInfo) {
-                setError(userInfo);
-                throw new Error("No se pudo obtener la información del usuario");
-            }
 
-            setUser(userInfo);
-            saveUserInfo(userInfo);
-
-            saveToken(data.access_token, data.expires_in);
-            return data;
-        } catch (e: any) {
-            setError(e?.message ?? "Error de registro");
-        }
-        finally {
-            setLoading(false);
-        }
-    }, []);
 
     const login = useCallback(async (email: string, password: string) => {
         setLoading(true);
@@ -154,7 +161,6 @@ export function useAuth() {
 
             setUser(userInfo);
             saveUserInfo(userInfo)
-
             saveToken(data.access_token, data.expires_in);
             return true;
         } catch (e: any) {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -44,15 +44,16 @@ const initialFormState = {
 export const ValidationPage = () => {
 
     const navigate = useNavigate();
-    const { register, error } = useAuth();
+    const { register, error, loading  } = useAuth();
 
     // Estado para manejar el formulario
     const [formState, setFormState] = useState(initialFormState);
-    
+
     // Validaciones de contraseña
     const [isPasswordValid, setIsPasswordValid] = useState(false);
     const [passwordHelper, setPasswordHelper] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [successfullRegister, setSuccessfullRegister] = useState(false);
 
     const handleClickShowPassword = () => setShowPassword((show) => !show);
     const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -72,7 +73,7 @@ export const ValidationPage = () => {
     const handlePasswordChange = (event: ChangeEvent<HTMLInputElement>) => {
         const { value } = event.target;
         handleInputChange(event);
-        
+
         const errors: string[] = [];
         if (value.length < 8) errors.push('Mínimo 8 caracteres');
         if (!/[A-Z]/.test(value)) errors.push('Una mayúscula');
@@ -88,9 +89,9 @@ export const ValidationPage = () => {
         setFormState(prev => ({ ...prev, phoneCountry: event.target.value as string }));
     };
 
-    const onSuccesfullRegister = () => {
+    const onSuccesfullRegister = async () => {
         // Validación básica antes de enviar
-        if(!formState.nombre || !formState.apellido || !formState.email || !formState.password) return;
+        if (!formState.nombre || !formState.apellido || !formState.email || !formState.password) return;
 
         const payload: RegisterUserRequest = {
             nombre: formState.nombre,
@@ -101,10 +102,15 @@ export const ValidationPage = () => {
             phone: `${formState.phoneCountry}${formState.phoneNumber}`.trim()
         }
 
-        register(payload);
-        if (error == "") {
-            navigate('/');
+        const ok = await register(payload);
+
+        if (!ok) {
+            // Hubo error; `error` ya tiene el mensaje
+            setSuccessfullRegister(false);
+            return;
         }
+
+        setSuccessfullRegister(true);
     }
 
     return (
@@ -332,8 +338,8 @@ export const ValidationPage = () => {
                             onChange={handlePasswordChange}
                             error={Boolean(formState.password) && !isPasswordValid}
                             helperText={
-                                formState.password && !isPasswordValid 
-                                    ? <Typography variant="caption" color="error">{passwordHelper}</Typography> 
+                                formState.password && !isPasswordValid
+                                    ? <Typography variant="caption" color="error">{passwordHelper}</Typography>
                                     : 'Mínimo 8 caracteres, mayúscula, número y símbolo'
                             }
                             InputProps={{
@@ -359,6 +365,12 @@ export const ValidationPage = () => {
                         </Alert>
                     )}
 
+                    {successfullRegister && (
+                        <Alert severity="success" sx={{ width: '100%', mb: 2.5 }}>
+                            "Correo creado correctamente"
+                        </Alert>
+                    )}
+
                     {/* --- BOTÓN REGISTRARSE --- */}
                     <Box sx={{ width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
                         <Button
@@ -366,7 +378,7 @@ export const ValidationPage = () => {
                             size="large"
                             endIcon={<ArrowForwardIcon />}
                             onClick={onSuccesfullRegister}
-                            disabled={!isPasswordValid || !formState.email || !formState.nombre}
+                            disabled={!isPasswordValid || !formState.email || !formState.nombre || loading }
                             sx={{
                                 py: 1.5,
                                 px: 4,
