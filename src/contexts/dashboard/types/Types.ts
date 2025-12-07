@@ -38,6 +38,14 @@ export interface HistoryCase {
     createdISO: string;
 }
 
+export interface NotificacionData {
+    id: number;
+    mensaje: string;
+    canal: string;
+    destinatario: string;
+    created_at?: string;
+}
+
 
 // Initial State
 export const initialState = {

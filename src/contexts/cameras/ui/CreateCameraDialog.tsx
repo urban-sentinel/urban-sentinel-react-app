@@ -1,113 +1,83 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TextField,
-    Button,
-    Grid, // Usamos la versión nueva de Grid
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
-    FormHelperText,
-    Switch,
-    FormControlLabel,
-    Typography
+    Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button,
+    FormControl, InputLabel, Select, MenuItem, FormHelperText,
+    Switch, FormControlLabel, Typography, ToggleButton, ToggleButtonGroup,
+    Stack, Box
 } from '@mui/material';
+import { Videocam, CloudUpload } from '@mui/icons-material';
 import type { CreateCameraPayload, OficinaData } from '../types/ConexionTypes';
 
 interface Props {
     open: boolean;
     onClose: () => void;
     onSubmit: (data: CreateCameraPayload) => void;
-    oficinas: OficinaData[]; // Recibimos las oficinas disponibles
+    oficinas: OficinaData[];
 }
 
 const initialFormState = {
-    id_oficina: '' as unknown as number, // Truco para el select vacio
+    id_oficina: '' as unknown as number,
     nombre_camara: '',
     ubicacion: '',
     rtsp_url: '',
-    fps_sample: 30, // Valor por defecto razonable
+    source_type: 'rtsp',
+    fps_sample: 30,
     habilitada: true
 };
 
 export const CreateCameraDialog = ({ open, onClose, onSubmit, oficinas }: Props) => {
     const [form, setForm] = useState(initialFormState);
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [touched, setTouched] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         if (open) {
             setForm(initialFormState);
             setErrors({});
-            setTouched({});
         }
     }, [open]);
 
-    // --- Validaciones ---
-    const validate = (field: string, value: any): string => {
-        switch (field) {
-            case 'id_oficina':
-                return !value ? 'Debes seleccionar una oficina' : '';
-            case 'nombre_camara':
-                return !value.trim() ? 'El nombre es obligatorio' : '';
-            case 'rtsp_url':
-                if (!value) return 'La URL es obligatoria';
-                // Validación solicitada: ValueError: rtsp_url must start with rtsp:// or rtmp://
-                const regex = /^(rtsp|rtmp):\/\//;
-                return !regex.test(value) ? 'La URL debe comenzar con rtsp:// o rtmp://' : '';
-            case 'fps_sample':
-                // Validación solicitada: fps_sample must be > 0
-                return value <= 0 ? 'Los FPS deben ser mayor a 0' : '';
-            default:
-                return '';
+    const handleSourceTypeChange = (_event: React.MouseEvent<HTMLElement>, newType: string | null) => {
+        if (newType !== null) {
+            setForm(prev => ({
+                ...prev,
+                source_type: newType,
+                rtsp_url: newType === 'webcam' ? 'webcam' : ''
+            }));
+            setErrors(prev => ({ ...prev, rtsp_url: '' }));
         }
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
         const { name, value } = e.target;
-        const fieldName = name as string;
+        setForm(prev => ({ ...prev, [name as string]: value }));
+    };
 
-        setForm(prev => ({ ...prev, [fieldName]: value }));
-
-        // Validar al escribir si ya fue tocado el campo
-        if (touched[fieldName]) {
-            setErrors(prev => ({ ...prev, [fieldName]: validate(fieldName, value) }));
+    const validate = (field: string, value: any): string => {
+        switch (field) {
+            case 'id_oficina': return !value ? 'Debes seleccionar una oficina' : '';
+            case 'nombre_camara': return !value.trim() ? 'El nombre es obligatorio' : '';
+            case 'rtsp_url':
+                if (form.source_type === 'webcam') return '';
+                if (!value) return 'La URL es obligatoria';
+                return !/^(rtsp|rtmp):\/\//.test(value) ? 'Debe comenzar con rtsp:// o rtmp://' : '';
+            case 'fps_sample': return value <= 0 ? 'FPS debe ser mayor a 0' : '';
+            default: return '';
         }
     };
 
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setTouched(prev => ({ ...prev, [name]: true }));
-        setErrors(prev => ({ ...prev, [name]: validate(name, value) }));
-    };
-
     const handleSubmit = () => {
-        // 1. Validar todos los campos
         const newErrors: Record<string, string> = {};
         let isValid = true;
-
         Object.keys(form).forEach(key => {
-            const error = validate(key, (form as any)[key]);
-            if (error) {
-                newErrors[key] = error;
-                isValid = false;
+            if (key !== 'source_type') {
+                const error = validate(key, (form as any)[key]);
+                if (error) { newErrors[key] = error; isValid = false; }
             }
         });
-
         setErrors(newErrors);
-        setTouched({
-            id_oficina: true,
-            nombre_camara: true,
-            rtsp_url: true,
-            fps_sample: true
-        });
 
         if (isValid) {
-            const payload: CreateCameraPayload = {
+            onSubmit({
                 id_oficina: Number(form.id_oficina),
                 nombre_camara: form.nombre_camara,
                 ubicacion: form.ubicacion,
@@ -116,83 +86,93 @@ export const CreateCameraDialog = ({ open, onClose, onSubmit, oficinas }: Props)
                 habilitada: form.habilitada,
                 modo_ingesta: 'SEGMENT',
                 retention_minutes: 60
-            };
-
-            onSubmit(payload);
+            });
             onClose();
         }
     };
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-            <DialogTitle sx={{ fontWeight: 'bold' }}>
+            <DialogTitle sx={{ fontWeight: 'bold', pb: 1 }}>
                 Registrar Nueva Cámara
             </DialogTitle>
+
             <DialogContent dividers>
-                <Grid container spacing={3} sx={{ mt: 1 }}>
+                {/* USAMOS STACK:
+                    spacing={2} -> Espacio vertical entre cada bloque
+                */}
+                <Stack spacing={3} sx={{ mt: 1 }}>
+                    
+                    {/* BLOQUE 1: FUENTE DE VIDEO */}
+                    <Box>
+                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                            Fuente de Video
+                        </Typography>
+                        <ToggleButtonGroup
+                            value={form.source_type}
+                            exclusive
+                            onChange={handleSourceTypeChange}
+                            fullWidth
+                            color="primary"
+                        >
+                            <ToggleButton value="rtsp"><CloudUpload sx={{ mr: 1 }} /> RTSP / IP</ToggleButton>
+                            <ToggleButton value="webcam"><Videocam sx={{ mr: 1 }} /> Webcam Local</ToggleButton>
+                        </ToggleButtonGroup>
+                    </Box>
 
-                    {/* 1. Selección de Oficina */}
-                    <Grid size={{ xs: 12 }}>
-                        <FormControl fullWidth error={!!errors.id_oficina}>
-                            <InputLabel id="office-select-label">Oficina</InputLabel>
-                            <Select
-                                labelId="office-select-label"
-                                name="id_oficina"
-                                value={form.id_oficina}
-                                label="Oficina"
-                                onChange={(e) => handleChange(e as any)}
-                                onBlur={() => setErrors(prev => ({ ...prev, id_oficina: validate('id_oficina', form.id_oficina) }))}
-                            >
-                                {oficinas.map((oficina) => (
-                                    <MenuItem key={oficina.id_oficina} value={oficina.id_oficina}>
-                                        {oficina.nombre_oficina} - {oficina.ciudad}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                            {errors.id_oficina && <FormHelperText>{errors.id_oficina}</FormHelperText>}
-                        </FormControl>
-                    </Grid>
+                    {/* BLOQUE 2: OFICINA */}
+                    <FormControl fullWidth error={!!errors.id_oficina}>
+                        <InputLabel>Oficina</InputLabel>
+                        <Select
+                            value={form.id_oficina}
+                            label="Oficina"
+                            name="id_oficina"
+                            onChange={(e) => handleChange(e as any)}
+                        >
+                            {oficinas.map((of) => (
+                                <MenuItem key={of.id_oficina} value={of.id_oficina}>
+                                    {of.nombre_oficina} - {of.ciudad}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                        {errors.id_oficina && <FormHelperText>{errors.id_oficina}</FormHelperText>}
+                    </FormControl>
 
-                    {/* 2. Datos básicos */}
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    {/* BLOQUE 3: NOMBRE Y UBICACIÓN (En fila) */}
+                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                         <TextField
                             fullWidth
-                            label="Nombre de la Cámara"
+                            label="Nombre de la cámara"
                             name="nombre_camara"
                             value={form.nombre_camara}
                             onChange={handleChange}
-                            onBlur={handleBlur}
                             error={!!errors.nombre_camara}
                             helperText={errors.nombre_camara}
                         />
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
                         <TextField
                             fullWidth
-                            label="Ubicación (Referencia)"
+                            label="Ubicación física"
                             name="ubicacion"
                             value={form.ubicacion}
                             onChange={handleChange}
-                            placeholder="Ej: Pasillo Principal"
+                            placeholder="Ej: Pasillo"
                         />
-                    </Grid>
+                    </Stack>
 
-                    {/* 3. Configuración Técnica */}
-                    <Grid size={{ xs: 12 }}>
-                        <TextField
-                            fullWidth
-                            label="URL de Transmisión (RTSP/RTMP)"
-                            name="rtsp_url"
-                            value={form.rtsp_url}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            error={!!errors.rtsp_url}
-                            helperText={errors.rtsp_url || "Debe comenzar con rtsp:// o rtmp://"}
-                        />
-                    </Grid>
+                    {/* BLOQUE 4: URL */}
+                    <TextField
+                        fullWidth
+                        label="URL de Transmisión"
+                        name="rtsp_url"
+                        value={form.source_type === 'webcam' ? 'Dispositivo Local (Webcam)' : form.rtsp_url}
+                        disabled={form.source_type === 'webcam'}
+                        onChange={handleChange}
+                        error={!!errors.rtsp_url}
+                        helperText={errors.rtsp_url || (form.source_type === 'rtsp' ? 'Ej: rtsp://user:pass@ip:port/stream' : '')}
+                    />
 
-                    <Grid size={{ xs: 12, md: 4 }}>
+                    {/* BLOQUE 5: FPS y SWITCH (En fila) */}
+                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
                         <TextField
                             fullWidth
                             type="number"
@@ -200,53 +180,29 @@ export const CreateCameraDialog = ({ open, onClose, onSubmit, oficinas }: Props)
                             name="fps_sample"
                             value={form.fps_sample}
                             onChange={handleChange}
-                            onBlur={handleBlur}
-                            error={!!errors.fps_sample}
-                            helperText={errors.fps_sample}
-                            slotProps={{ htmlInput: { min: 1 } }}
+                            inputProps={{ min: 1 }}
                         />
-                    </Grid>
+                        
+                        <Box sx={{ width: '100%', display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+                            <FormControlLabel
+                                control={
+                                    <Switch 
+                                        checked={form.habilitada} 
+                                        onChange={(e) => setForm({ ...form, habilitada: e.target.checked })} 
+                                    />
+                                }
+                                label={form.habilitada ? "Cámara Habilitada" : "Cámara Deshabilitada"}
+                                labelPlacement="end"
+                            />
+                        </Box>
+                    </Stack>
 
-                    <Grid size={{ xs: 12, md: 4 }}>
-                        <TextField
-                            fullWidth
-                            disabled
-                            label="Modo de Ingesta"
-                            value="SEGMENT"
-                            helperText="Configuración fija del sistema"
-                        />
-                    </Grid>
-
-                    {/* Habilitada Switch */}
-                    <Grid size={{ xs: 12, md: 4 }} sx={{ display: 'flex', alignItems: 'center' }}>
-                        <FormControlLabel
-                            control={
-                                <Switch
-                                    checked={form.habilitada}
-                                    onChange={(e) => setForm({ ...form, habilitada: e.target.checked })}
-                                    color="primary"
-                                />
-                            }
-                            label="Cámara Habilitada"
-                        />
-                    </Grid>
-
-                    {/* Nota informativa sobre retención */}
-                    <Grid size={{ xs: 12 }}>
-                        <Typography variant="caption" color="text.secondary">
-                            * La política de retención por defecto es de 60 minutos.
-                        </Typography>
-                    </Grid>
-
-                </Grid>
+                </Stack>
             </DialogContent>
-            <DialogActions sx={{ p: 3 }}>
-                <Button onClick={onClose} color="inherit">
-                    Cancelar
-                </Button>
-                <Button onClick={handleSubmit} variant="contained" color="primary">
-                    Guardar Cámara
-                </Button>
+
+            <DialogActions sx={{ px: 3, py: 2 }}>
+                <Button onClick={onClose} color="inherit" sx={{ mr: 1 }}>Cancelar</Button>
+                <Button onClick={handleSubmit} variant="contained">Registrar Cámara</Button>
             </DialogActions>
         </Dialog>
     );

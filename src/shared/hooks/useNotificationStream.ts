@@ -57,9 +57,6 @@ export const useNotificationStream = (destinatario: string) => {
             // reconectar si se cerró solo
             if (!manualClose) {
                 setTimeout(() => {
-                    // disparar el efecto otra vez cambiando una “key”
-                    // lo más simple: cambiar destinatario en el componente padre
-                    // o usar un estado extra de reintentos
                 }, 2000);
             }
         };

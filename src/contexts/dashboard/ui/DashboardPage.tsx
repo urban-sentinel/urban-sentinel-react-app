@@ -27,15 +27,11 @@ import { useOficina } from '../../cameras/infra/useOficina';
 import { useEvent } from '../../clips/infra/useEvents';
 import type { EventData } from '../../clips/types/EventTypes';
 import { useNotification } from '../../clips/infra/useNotification';
+import type { NotificacionData } from '../types/Types';
 
 // --- 1. INTERFACES DEL BACKEND ---
 
-interface NotificacionBackend {
-    mensaje: string;
-    canal: string;
-    destinatario: string;
-    created_at?: string;
-}
+
 
 const historyMock = [
     { id: '1', title: 'Sujeto destruyó cámara', caseNumber: 'GPO001265', severity: 'high', location: 'Av. Abancay', type: 'Patadas', createdISO: '2020-09-12T00:00:00' },
@@ -53,7 +49,7 @@ export const DashboardPage = () => {
     const [oficinas, setOficinas] = useState<OficinaData[]>([]);
     const [camaras, setCamaras] = useState<ConexionData[]>([]);
     const [eventos, setEventos] = useState<EventData[]>([]);
-    const [notificaciones, setNotificaciones] = useState<NotificacionBackend[]>([]);
+    const [notificaciones, setNotificaciones] = useState<NotificacionData[]>([]);
 
     const [showAddCamera, setShowAddCamera] = useState(false);
 

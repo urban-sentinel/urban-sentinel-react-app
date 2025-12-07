@@ -1,115 +1,62 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
-    Card,
-    CardHeader,
-    CardContent,
-    CardActions,
-    Chip,
-    Typography,
-    Box,
-    Badge,
-    Button,
-    Stack,
+    Card, CardHeader, CardContent, CardActions, Chip, Typography,
+    Box, Badge, Button, Stack, CircularProgress
 } from '@mui/material';
-import { VideocamOff } from '@mui/icons-material';
+import { Videocam, VideocamOff, Cloud } from '@mui/icons-material';
 import type { CameraDisplayData } from './CamerasPage';
-import { useCameraControl } from '../infra/useCameraControl';
 import { useConexion } from '../infra/useConexion';
+import { useCameraStream } from '../infra/useCameraStream';
 
 interface CameraCardProps {
     camera: CameraDisplayData;
     onExpand: (cameraId: string) => void;
     enableLive?: boolean;
     onReload?: () => Promise<void> | void;
-    imgSrc?: string | null;
-    isConnected?: boolean;
 }
 
-export const CameraCard = ({
-    camera,
-    onExpand,
-    enableLive = true,
-    onReload,
-    imgSrc,
-    isConnected
-}: CameraCardProps) => {
-
-    const showLivePreview = enableLive && camera.status === 'active';
-
+export const CameraCard = ({ camera, onExpand, enableLive = true, onReload }: CameraCardProps) => {
     const { updateConexionEstado, updateHabilitado } = useConexion();
+    const [loadingAction, setLoadingAction] = useState(false);
 
-    const {
-        startCamera,
-        stopCamera,
-        enableInference,
-        disableInference,
-        loading,
-        error,
-    } = useCameraControl();
-
-    // Estado local para saber qué texto mostrar en los botones
-    const [videoOn, setVideoOn] = useState(camera.status === 'active');
-    const [inferenceOn, setInferenceOn] = useState(camera.habilitada === true); // asumimos que arranca activo
-
-    // Si cambia el status de la cámara desde fuera, sincronizamos
-    useEffect(() => {
-        setVideoOn(camera.status === 'active');
-    }, [camera.status]);
-
-    const StatusChip = ({ status }: { status: 'active' | 'disabled' }) => (
-        <Chip
-            label={status === 'active' ? 'Active' : 'Disabled'}
-            size="small"
-            color={status === 'active' ? 'success' : 'error'}
-        />
-    );
-
-    const HabilitadoChip = ({ enabled }: { enabled: boolean }) => (
-        <Chip
-            label={enabled ? 'Habilitado' : 'Modelo detenido'}
-            size="small"
-            color={enabled ? 'primary' : 'default'}
-            variant={enabled ? 'filled' : 'outlined'}
-        />
-    );
+    // 1. Usamos el hook y extraemos activeStream
+    const { 
+        imgSrc, 
+        // videoRef, // Ya no lo usamos directamente en el render
+        activeStream, // <--- IMPORTANTE: El stream puro
+        isConnected, 
+        error, 
+        isWebcamMode 
+    } = useCameraStream({
+        cameraId: camera.id,
+        rtspUrl: camera.conexion.rtsp_url,
+        // Solo conectamos si la cámara está activa para ahorrar recursos en el grid
+        autoConnect: enableLive && camera.status === 'active'
+    });
 
     const handleToggleVideo = async () => {
+        setLoadingAction(true);
         try {
-            if (videoOn) {
-                await stopCamera("cam_01");
-                await updateConexionEstado(camera.conexion_id, false);
-                setVideoOn(false);
-            } else {
-                await startCamera("cam_01");
-                await updateConexionEstado(camera.conexion_id, true);
-                setVideoOn(true);
-            }
-        } catch {
-            // El error ya se maneja en el hook (state error)
+            const newState = camera.status !== 'active';
+            await updateConexionEstado(camera.conexion_id, newState);
+            if (onReload) await onReload();
+        } catch (e) {
+            console.error(e);
         } finally {
-            if (onReload) {
-                onReload();
-            }
+            setLoadingAction(false);
         }
     };
 
-    const handleToggleInference = async () => {
+    const handleToggleModel = async () => {
+        setLoadingAction(true);
         try {
-            if (inferenceOn) {
-                await disableInference("cam_01");
-                await updateHabilitado(camera.conexion_id, false);
-                setInferenceOn(false);
-            } else {
-                await enableInference("cam_01");
-                await updateHabilitado(camera.conexion_id, true);
-                setInferenceOn(true);
-            }
-        } catch {
-            // idem
+            const newState = !camera.habilitada;
+            await updateHabilitado(camera.conexion_id, newState);
+            if (onReload) await onReload();
+        } catch (e) {
+            console.error(e);
         } finally {
-            if (onReload) {
-                onReload();
-            }
+            setLoadingAction(false);
         }
     };
 
@@ -121,35 +68,42 @@ export const CameraCard = ({
                 border: (t) => `1px solid ${t.palette.divider}`,
                 boxShadow: (t) => t.shadows[1],
                 height: '100%',
-                width: '550px',
+                width: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                transition: (t) =>
-                    t.transitions.create(['box-shadow', 'transform'], {
-                        duration: t.transitions.duration.shortest,
-                    }),
-                '&:hover': {
-                    boxShadow: (t) => t.shadows[2],
-                    transform: 'translateY(-1px)',
-                },
+                transition: 'all 0.2s',
+                '&:hover': { boxShadow: 3, transform: 'translateY(-2px)' },
             }}
         >
             <CardHeader
-                sx={{ pb: 1, '& .MuiCardHeader-title': { fontWeight: 600 } }}
+                sx={{ pb: 1 }}
                 title={
-                    <Typography variant="subtitle1" noWrap sx={{ fontWeight: 600 }}>
+                    <Typography variant="subtitle1" fontWeight={600} noWrap>
                         {camera.name}
                     </Typography>
                 }
                 subheader={
-                    <Typography variant="caption" color="text.secondary" noWrap>
-                        {camera.ubicacion}
-                    </Typography>
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                        {isWebcamMode ? <Videocam fontSize="inherit" /> : <Cloud fontSize="inherit" />}
+                        <Typography variant="caption" color="text.secondary">
+                            {isWebcamMode ? 'Webcam Local' : camera.ubicacion}
+                        </Typography>
+                    </Stack>
                 }
                 action={
-                    <Stack direction="row" spacing={1} alignItems="center">
-                        <StatusChip status={camera.status} />
-                        <HabilitadoChip enabled={camera.habilitada} />
+                    <Stack direction="row" spacing={1}>
+                        <Chip
+                            label={camera.status === 'active' ? 'ON' : 'OFF'}
+                            size="small"
+                            color={camera.status === 'active' ? 'success' : 'default'}
+                            variant="filled"
+                        />
+                        <Chip
+                            label={camera.habilitada ? 'IA' : 'No IA'}
+                            size="small"
+                            color={camera.habilitada ? 'primary' : 'default'}
+                            variant={camera.habilitada ? 'filled' : 'outlined'}
+                        />
                     </Stack>
                 }
             />
@@ -157,93 +111,93 @@ export const CameraCard = ({
             <CardContent sx={{ pt: 0, pb: 1, flexGrow: 1 }}>
                 <Box
                     sx={{
-                        position: 'relative',
-                        width: '100%',
-                        aspectRatio: '16/9',
-                        bgcolor: 'grey.900',
-                        borderRadius: 2,
-                        overflow: 'hidden',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'grey.400',
-                        cursor: 'pointer',
+                        position: 'relative', width: '100%', aspectRatio: '16/9',
+                        bgcolor: 'grey.900', borderRadius: 2, overflow: 'hidden',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer'
                     }}
                     onClick={() => onExpand(camera.id)}
                 >
-                    {imgSrc && camera.conexion_id == 1 ? (
-                        <img
-                            src={imgSrc}
-                            alt={`LIVE CAM_01`}
-                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
+                    {camera.status === 'active' ? (
+                        <>
+                            {/* --- LÓGICA DE RENDERIZADO DE VIDEO CORREGIDA --- */}
+                            {isWebcamMode ? (
+                                activeStream ? (
+                                    <video
+                                        ref={(node) => {
+                                            // CALLBACK REF: Asigna el stream apenas el nodo existe
+                                            if (node && activeStream && node.srcObject !== activeStream) {
+                                                node.srcObject = activeStream;
+                                                node.play().catch(() => {}); // Ignorar errores de autoplay
+                                            }
+                                        }}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        muted
+                                        playsInline
+                                        autoPlay
+                                    />
+                                ) : (
+                                    <Stack alignItems="center" color="grey.500">
+                                        <CircularProgress size={24} color="inherit" />
+                                        <Typography variant="caption" mt={1}>Iniciando...</Typography>
+                                    </Stack>
+                                )
+                            ) : (
+                                imgSrc ? (
+                                    <img src={imgSrc} alt="Live" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                    <Stack alignItems="center" color="grey.500">
+                                        <CircularProgress size={24} color="inherit" />
+                                        <Typography variant="caption" mt={1}>Esperando señal...</Typography>
+                                    </Stack>
+                                )
+                            )}
+
+                            {/* Mensajes de error si falló la conexión */}
+                            {error && (
+                                <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2, textAlign: 'center' }}>
+                                    <Typography variant="caption" color="error.main">{error}</Typography>
+                                </Box>
+                            )}
+                            
+                            {isConnected && (
+                                <Chip label="LIVE" size="small" color="error" sx={{ position: 'absolute', top: 8, left: 8, height: 20, fontSize: '0.7rem' }} />
+                            )}
+                        </>
                     ) : (
-                        <Box
-                            sx={{
-                                position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
-                                justifyContent: 'center', color: 'grey.400',
-                            }}
-                        >
-                            <Typography variant="caption">
-                                {error ? 'Error de stream' : (isConnected ? 'Conectado, esperando frames…' : 'No señal de video')}
-                            </Typography>
-                        </Box>
+                        <Stack alignItems="center" color="grey.700">
+                            <VideocamOff fontSize="large" />
+                            <Typography variant="caption">Cámara Apagada</Typography>
+                        </Stack>
                     )}
 
-
+                    {/* Badge de alertas */}
                     {camera.lastReportCount && camera.lastReportCount > 0 && (
                         <Badge
                             badgeContent={camera.lastReportCount}
                             color="warning"
-                            sx={{
-                                position: 'absolute',
-                                top: 8,
-                                right: 8,
-                                '& .MuiBadge-badge': { fontWeight: 700, boxShadow: 1 },
-                            }}
+                            sx={{ position: 'absolute', top: 10, right: 10 }}
                         />
                     )}
                 </Box>
             </CardContent>
 
-            <CardActions
-                sx={{
-                    px: 2.5,
-                    pb: 2,
-                    mt: 'auto',
-                    gap: 1,
-                    '& .MuiButton-root': { textTransform: 'none', fontSize: 12 },
-                }}
-            >
-                {/* Botón 1: video (start/stop) */}
+            <CardActions sx={{ px: 2, pb: 2, justifyContent: 'space-between' }}>
                 <Button
-                    size="small"
-                    variant="outlined"
-                    disabled={loading}
-                    onClick={handleToggleVideo}
+                    size="small" variant="outlined" color={camera.status === 'active' ? 'error' : 'primary'}
+                    onClick={(e) => { e.stopPropagation(); handleToggleVideo(); }} 
+                    disabled={loadingAction}
                 >
-                    {videoOn ? 'Detener video' : 'Iniciar video'}
+                    {camera.status === 'active' ? 'Apagar' : 'Encender'}
                 </Button>
 
-                {/* Botón 2: modelo IA (enable/disable) */}
                 <Button
-                    size="small"
-                    variant="outlined"
-                    disabled={loading /* o también !videoOn si quieres forzar que haya video */}
-                    onClick={handleToggleInference}
+                    size="small" variant="text"
+                    onClick={(e) => { e.stopPropagation(); handleToggleModel(); }}
+                    disabled={loadingAction}
                 >
-                    {inferenceOn ? 'Detener modelo' : 'Iniciar modelo'}
+                    {camera.habilitada ? 'Deshabilitar IA' : 'Habilitar IA'}
                 </Button>
-
-                {error && (
-                    <Typography
-                        variant="caption"
-                        color="error"
-                        sx={{ width: '100%', mt: 0.5 }}
-                    >
-                        {error.message}
-                    </Typography>
-                )}
             </CardActions>
         </Card>
     );

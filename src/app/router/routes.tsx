@@ -1,23 +1,20 @@
 import { AppShell } from "../../shared/ui/layout/AppShell";
-import { createBrowserRouter } from "react-router-dom";
-
-import type { NavItem } from "../../shared/types/types";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import VideocamIcon from "@mui/icons-material/Videocam";
-import NotificationsIcon from "@mui/icons-material/Notifications";
-import AssessmentIcon from "@mui/icons-material/Assessment";
-import HistoryIcon from "@mui/icons-material/History";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
+
+// Páginas
 import { DashboardPage } from "../../contexts/dashboard/ui/DashboardPage";
 import { CamerasPage } from "../../contexts/cameras/ui/CamerasPage";
 import { ClipsPage } from "../../contexts/clips/ui/ClipsPage";
 import { LoginPage } from "../../contexts/auth/ui/LoginPage";
 import { ValidationPage } from "../../contexts/auth/ui/ValidationPage";
-import { AdminRoute, PrivateRoute, PublicRoute } from "./guards";
 import { AdminUserPage } from "../../contexts/admin/ui/AdminUserPage";
 import { ChangePasswordPage } from "../../contexts/auth/ui/ChangePasswordPage";
 import ResetPasswordPage from "../../contexts/auth/ui/ResetPasswordPage";
 import { ReportsPage } from "../../contexts/reports/ui/ReportPage";
+
+// Guards
+import { AdminRoute, PrivateRoute, PublicRoute } from "./guards";
 
 function BlankPage({ title }: { title: string }) {
     return (
@@ -27,115 +24,74 @@ function BlankPage({ title }: { title: string }) {
     );
 }
 
-const navItems: NavItem[] = [
-    { label: "Dashboard", path: "/", icon: <DashboardIcon /> },
-    { label: "Cámaras", path: "/cameras", icon: <VideocamIcon /> },
-    { label: "Alertas", path: "/alerts", icon: <NotificationsIcon /> },
-    { label: "Reportes", path: "/reports", icon: <AssessmentIcon /> },
-    { label: "Historial", path: "/history", icon: <HistoryIcon /> },
-];
-
 export const browserRouter = createBrowserRouter([
+    // --- RUTAS PÚBLICAS ---
     {
         path: "/login",
-        element: (
-            <PublicRoute>
-                <LoginPage />
-            </PublicRoute>
-        ),
+        element: <PublicRoute><LoginPage /></PublicRoute>,
     },
     {
         path: "/validation",
-        element: (
-            <PublicRoute>
-                <ValidationPage />
-            </PublicRoute>
-        ),
+        element: <PublicRoute><ValidationPage /></PublicRoute>,
     },
     {
         path: "/change-password",
-        element: (
-            <PublicRoute>
-                <ChangePasswordPage />
-            </PublicRoute>
-        ),
-    },
-        {
-        path: "/reset-password",
-        element: (
-            <PublicRoute>
-                <ResetPasswordPage />
-            </PublicRoute>
-        ),
+        element: <PublicRoute><ChangePasswordPage /></PublicRoute>,
     },
     {
-        path: "*",
-        element: (
-            <PublicRoute>
-                <LoginPage />
-            </PublicRoute>
-        ),
+        path: "/reset-password",
+        element: <PublicRoute><ResetPasswordPage /></PublicRoute>,
     },
 
-    // RUTAS PRIVADAS (si NO está logueado => redirige a /login)
+    // --- RUTAS PRIVADAS (LAYOUT PERSISTENTE) ---
     {
-        path: "/",
+        // El AppShell se monta UNA VEZ aquí y no se destruye al navegar entre hijos
         element: (
             <PrivateRoute>
-                <AppShell navItems={navItems}>
-                    <DashboardPage />
-                </AppShell>
+                <AppShell />
             </PrivateRoute>
         ),
+        // Todas estas rutas se renderizan donde pusimos el <Outlet /> en AppShell
+        children: [
+            {
+                path: "/",
+                element: <DashboardPage />,
+            },
+            {
+                path: "/cameras",
+                element: <CamerasPage />,
+            },
+            {
+                path: "/alerts",
+                element: <BlankPage title="Alertas" />,
+            },
+            {
+                path: "/history",
+                element: <ClipsPage />,
+            },
+            {
+                path: "/reports",
+                element: (
+                    <AdminRoute>
+                        <ReportsPage />
+                    </AdminRoute>
+                ),
+            },
+            {
+                path: "/admin/workers",
+                // Protegemos SOLO esta página específica
+                element: (
+                    <AdminRoute>
+                        <AdminUserPage />
+                    </AdminRoute>
+                ),
+            }
+        ]
     },
+
+    // --- FALLBACK ---
     {
-        path: "/cameras",
-        element: (
-            <PrivateRoute>
-                <AppShell navItems={navItems} headerTitle="Cámaras">
-                    <CamerasPage />
-                </AppShell>
-            </PrivateRoute>
-        ),
+        path: "*",
+        element: <Navigate to="/login" replace />,
     },
-    {
-        path: "/alerts",
-        element: (
-            <PrivateRoute>
-                <AppShell navItems={navItems} headerTitle="Alertas">
-                    <BlankPage title="Alertas" />
-                </AppShell>
-            </PrivateRoute>
-        ),
-    },
-    {
-        path: "/reports",
-        element: (
-            <PrivateRoute>
-                <AppShell navItems={navItems} headerTitle="Reportes">
-                    <ReportsPage />
-                </AppShell>
-            </PrivateRoute>
-        ),
-    },
-    {
-        path: "/history",
-        element: (
-            <PrivateRoute>
-                <AppShell navItems={navItems} headerTitle="Historial">
-                    <ClipsPage />
-                </AppShell>
-            </PrivateRoute>
-        ),
-    },
-    {
-        path: "/admin/workers",
-        element: (
-            <AdminRoute>
-                <AppShell navItems={navItems} headerTitle="Admin Workers">
-                    <AdminUserPage />
-                </AppShell>
-            </AdminRoute>
-        ),
-    }
 ]);
