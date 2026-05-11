@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { OficinaService } from "../services/OficinaService";
 import { HttpClient } from "../../../app/services/httpClient";
+import type { CreateOficinaRequest, OficinaData } from "../types/OficinaTypes";
 
 const httpClient: HttpClient = new HttpClient();
 const oficinaService = new OficinaService(httpClient);
@@ -27,5 +28,23 @@ export const useOficina = () => {
         }
     }, []);
 
-    return { getAllOffices, loading, error };;
+    const createOficina = useCallback(async (data: CreateOficinaRequest) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await oficinaService.createOficina(data);
+            if (!response) {
+                throw new Error("No se pudo crear la oficina")
+            }
+            return response;
+        }
+        catch(e: any) {
+            setError(e.message || "Error desconocido");
+        }
+        finally {
+            setLoading(false);
+        }
+    }, [])
+
+    return { getAllOffices, createOficina, loading, error };;
 }

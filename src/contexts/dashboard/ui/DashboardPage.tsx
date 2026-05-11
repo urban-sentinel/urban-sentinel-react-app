@@ -20,7 +20,8 @@ import {
     FiberManualRecord as DotIcon,
     CalendarMonth
 } from '@mui/icons-material';
-import type { ConexionData, CreateCameraPayload, OficinaData } from '../../cameras/types/ConexionTypes';
+import type { ConexionData, CreateCameraPayload } from '../../cameras/types/ConexionTypes';
+import type { CreateOficinaRequest, OficinaData } from '../../cameras/types/OficinaTypes';
 import { useConexion } from '../../cameras/infra/useConexion';
 import { CreateCameraDialog } from '../../cameras/ui/CreateCameraDialog';
 import { useOficina } from '../../cameras/infra/useOficina';
@@ -28,6 +29,7 @@ import { useEvent } from '../../clips/infra/useEvents';
 import type { EventData } from '../../clips/types/EventTypes';
 import { useNotification } from '../../clips/infra/useNotification';
 import type { NotificacionData } from '../types/Types';
+import { CreateOficinaDialog } from '../../cameras/ui/CreateOficinaDialog';
 
 // --- 1. INTERFACES DEL BACKEND ---
 
@@ -41,7 +43,7 @@ const historyMock = [
 
 export const DashboardPage = () => {
     const { getAllConexions, createConexion } = useConexion();
-    const { getAllOffices } = useOficina();
+    const { getAllOffices, createOficina } = useOficina();
     const { getAllEvents } = useEvent();
     const { getAllNotifications } = useNotification();
     // --- STATES ---
@@ -50,6 +52,8 @@ export const DashboardPage = () => {
     const [camaras, setCamaras] = useState<ConexionData[]>([]);
     const [eventos, setEventos] = useState<EventData[]>([]);
     const [notificaciones, setNotificaciones] = useState<NotificacionData[]>([]);
+    const [openCameraDialog, setOpenCameraDialog] = useState(false);
+    const [openOficinaDialog, setOpenOficinaDialog] = useState(false);
 
     const [showAddCamera, setShowAddCamera] = useState(false);
 
@@ -100,6 +104,19 @@ export const DashboardPage = () => {
         try {
             setLoading(true);
             await createConexion(payload);
+            fetchCameras();
+            setShowAddCamera(false);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCreateOficina = async (payload: CreateOficinaRequest) => {
+        try {
+            setLoading(true);
+            await createOficina(payload);
             fetchCameras();
             setShowAddCamera(false);
         } catch (e) {
@@ -392,7 +409,14 @@ export const DashboardPage = () => {
                 onClose={() => setShowAddCamera(false)}
                 onSubmit={handleCreateCamera}
                 oficinas={oficinas}
+                onOpenCreateOficina={() => setOpenOficinaDialog(true)}
             />
+
+                <CreateOficinaDialog
+                    open={openOficinaDialog}
+                    onClose={() => setOpenOficinaDialog(false)}
+                    onSubmit={handleCreateOficina}
+                />
         </Box>
     );
 };

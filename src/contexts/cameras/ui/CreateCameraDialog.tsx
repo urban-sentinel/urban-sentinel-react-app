@@ -3,16 +3,18 @@ import {
     Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button,
     FormControl, InputLabel, Select, MenuItem, FormHelperText,
     Switch, FormControlLabel, Typography, ToggleButton, ToggleButtonGroup,
-    Stack, Box
+    Stack, Box, IconButton, Tooltip
 } from '@mui/material';
-import { Videocam, CloudUpload } from '@mui/icons-material';
-import type { CreateCameraPayload, OficinaData } from '../types/ConexionTypes';
+import { Videocam, CloudUpload, Add } from '@mui/icons-material';
+import type { CreateCameraPayload } from '../types/ConexionTypes';
+import type { OficinaData } from '../types/OficinaTypes';
 
 interface Props {
     open: boolean;
     onClose: () => void;
     onSubmit: (data: CreateCameraPayload) => void;
     oficinas: OficinaData[];
+    onOpenCreateOficina?: () => void;
 }
 
 const initialFormState = {
@@ -25,7 +27,7 @@ const initialFormState = {
     habilitada: true
 };
 
-export const CreateCameraDialog = ({ open, onClose, onSubmit, oficinas }: Props) => {
+export const CreateCameraDialog = ({ open, onClose, onSubmit, oficinas, onOpenCreateOficina }: Props) => {
     const [form, setForm] = useState(initialFormState);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -120,23 +122,50 @@ export const CreateCameraDialog = ({ open, onClose, onSubmit, oficinas }: Props)
                         </ToggleButtonGroup>
                     </Box>
 
-                    {/* BLOQUE 2: OFICINA */}
-                    <FormControl fullWidth error={!!errors.id_oficina}>
-                        <InputLabel>Oficina</InputLabel>
-                        <Select
-                            value={form.id_oficina}
-                            label="Oficina"
-                            name="id_oficina"
-                            onChange={(e) => handleChange(e as any)}
-                        >
-                            {oficinas.map((of) => (
-                                <MenuItem key={of.id_oficina} value={of.id_oficina}>
-                                    {of.nombre_oficina} - {of.ciudad}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                        {errors.id_oficina && <FormHelperText>{errors.id_oficina}</FormHelperText>}
-                    </FormControl>
+                    {/* BLOQUE 2: OFICINA CON BOTÓN PARA CREAR NUEVA */}
+                    <Stack spacing={1}>
+                        <Stack direction="row" spacing={1} alignItems="flex-start" justifyContent="space-between">
+                            <Typography variant="subtitle2" color="text.secondary">
+                                Oficina
+                            </Typography>
+                            {onOpenCreateOficina && (
+                                <Tooltip title="Crear nueva oficina">
+                                    <IconButton
+                                        size="small"
+                                        color="primary"
+                                        onClick={onOpenCreateOficina}
+                                        sx={{
+                                            width: 32,
+                                            height: 32,
+                                            border: '1px solid',
+                                            borderColor: 'primary.main',
+                                            '&:hover': {
+                                                backgroundColor: 'primary.lighter',
+                                            }
+                                        }}
+                                    >
+                                        <Add fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
+                        </Stack>
+                        <FormControl fullWidth error={!!errors.id_oficina}>
+                            <InputLabel>Selecciona una oficina</InputLabel>
+                            <Select
+                                value={form.id_oficina}
+                                label="Selecciona una oficina"
+                                name="id_oficina"
+                                onChange={(e) => handleChange(e as any)}
+                            >
+                                {oficinas.map((of) => (
+                                    <MenuItem key={of.id_oficina} value={of.id_oficina}>
+                                        {of.nombre_oficina} - {of.ciudad}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                            {errors.id_oficina && <FormHelperText>{errors.id_oficina}</FormHelperText>}
+                        </FormControl>
+                    </Stack>
 
                     {/* BLOQUE 3: NOMBRE Y UBICACIÓN (En fila) */}
                     <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>

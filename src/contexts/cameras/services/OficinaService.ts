@@ -1,5 +1,5 @@
 import { HttpClient } from "../../../app/services/httpClient";
-import type { OficinaData } from "../types/ConexionTypes";
+import type { CreateOficinaRequest, OficinaData } from "../types/OficinaTypes";
 
 export class OficinaService {
     private readonly basePath = "/api/oficinas";
@@ -15,5 +15,9 @@ export class OficinaService {
 
     getAllConexions(): Promise<OficinaData[] | null> {
         return this.http.get<OficinaData[]>(this.path(""), {}, true);
+    }
+
+    createOficina(data: CreateOficinaRequest): Promise<OficinaData | null> {
+        return this.http.post<OficinaData>(this.path(""), data, true);
     }
 }

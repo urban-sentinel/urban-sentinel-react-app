@@ -14,16 +14,6 @@ export interface ConexionData {
     updated_at: string | null;
 }
 
-export interface OficinaData {
-    id_oficina: number;
-    nombre_oficina: string;
-    direccion: string;
-    ciudad: string;
-    responsable: string;
-    telefono_contacto: string;
-    fecha_registro: string;
-}
-
 export interface CreateCameraPayload {
     id_oficina: number;
     nombre_camara: string;
