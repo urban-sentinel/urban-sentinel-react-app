@@ -33,7 +33,7 @@ type EventoResponse = {
     id_clip: number | null;
     id_usuario: number | null;
     tipo_evento: 'golpe' | 'patada' | 'forcejeo' | string;
-    confianza: number | null; // 0–1
+    confianza: number | null;
     t_inicio_ms: number | null;
     t_fin_ms: number | null;
     timestamp_evento: string;
@@ -45,7 +45,7 @@ type EventoResponse = {
 type ClipResponse = {
     id_clip: number;
     id_conexion: number;
-    storage_path: string; // ruta al MP4
+    storage_path: string;
     start_time_utc: string;
     duration_sec: number;
     fecha_guardado: string;
@@ -60,12 +60,53 @@ type EventLogJson = {
     video_path: string;
     log_path: string;
     total_logs: number;
-    logs: Array<{ timestamp_ms: number; probabilities: Record<string, number> }>;
+    analisis_ia: { metricas_promedio: { Golpe: number, Peaton: number, Patada: number, Forcejeo: number } };
 };
 
 /* ============================
    Helpers
 ============================ */
+
+const API_BASE =
+    (import.meta as any).env?.VITE_API_BASE?.replace(/\/$/, '') ||
+    'http://127.0.0.1:8000';
+
+/**
+ * Convierte una ruta local Windows/Linux a una URL que el navegador puede acceder.
+ * IMPORTANTE: El backend debe servir estos archivos en /api/clips/{id_clip}/stream
+ */
+function getVideoStreamUrl(clip: ClipResponse | null | undefined): string | undefined {
+    if (!clip) return undefined;
+    
+    // Primero intenta usar el endpoint de stream (lo ideal)
+    if (clip.id_clip) {
+        return `${API_BASE}/api/clips/${clip.id_clip}/stream`;
+    }
+    
+    // Fallback: si la ruta ya es una URL HTTP, úsala
+    if (clip.storage_path && /^https?:\/\//i.test(clip.storage_path)) {
+        return clip.storage_path;
+    }
+    
+    return undefined;
+}
+
+/**
+ * Intenta servir una ruta local a través del servidor (asume /static/clips/{filename})
+ * NOTA: Solo funciona si el backend monta StaticFiles en /static/clips
+ */
+function convertLocalPathToStatic(storagePath: string): string {
+    if (!storagePath) return '';
+    
+    // Si ya es una URL, retorna tal cual
+    if (/^https?:\/\//i.test(storagePath)) return storagePath;
+    
+    // Extrae el nombre del archivo
+    const filename = storagePath.split(/[\\\/]/).pop() || '';
+    
+    // Retorna la URL static (ajusta según tu configuración del backend)
+    return `${API_BASE}/static/clips/${filename}`;
+}
 
 function normalizeStaticPath(p?: string | null): string {
     if (!p) return '';
@@ -132,10 +173,6 @@ function useEventos(idConexion: number) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const API_BASE =
-        (import.meta as any).env?.VITE_API_BASE?.replace(/\/$/, '') ||
-        'http://127.0.0.1:8000';
-
     const AUTH_TOKEN =
         (import.meta as any).env?.VITE_AUTH_TOKEN ||
         localStorage.getItem('access_token') ||
@@ -178,10 +215,6 @@ function useClip(idClip?: number | null) {
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState<string | null>(null);
 
-    const API_BASE =
-        (import.meta as any).env?.VITE_API_BASE?.replace(/\/$/, '') ||
-        'http://127.0.0.1:8000';
-
     const AUTH_TOKEN =
         (import.meta as any).env?.VITE_AUTH_TOKEN ||
         localStorage.getItem('access_token') ||
@@ -223,24 +256,37 @@ function useClip(idClip?: number | null) {
     return { clip, loading, err };
 }
 
-function useEventoLog(jsonPath?: string | null) {
+function useEventoLog(jsonPath?: string | null, eventoId?: number | null) {
     const [log, setLog] = useState<EventLogJson | null>(null);
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState<string | null>(null);
 
+    const AUTH_TOKEN =
+        (import.meta as any).env?.VITE_AUTH_TOKEN ||
+        localStorage.getItem('access_token') ||
+        '';
+
+    const authHeaders: HeadersInit = AUTH_TOKEN
+        ? { Authorization: `Bearer ${AUTH_TOKEN}` }
+        : {};
+
     useEffect(() => {
-        if (!jsonPath) {
+        if (!jsonPath && !eventoId) {
             setLog(null);
             setErr(null);
             return;
         }
 
-        const url = normalizeStaticPath(jsonPath);
         let alive = true;
         setLoading(true);
         setErr(null);
 
-        fetch(url)
+        // Prioriza endpoint con ID si está disponible
+        const url = eventoId
+            ? `${API_BASE}/api/eventos/${eventoId}/json`
+            : normalizeStaticPath(jsonPath);
+
+        fetch(url, { headers: authHeaders })
             .then(async (r) => {
                 if (!r.ok)
                     throw new Error(`No se pudo leer el JSON (HTTP ${r.status})`);
@@ -257,7 +303,7 @@ function useEventoLog(jsonPath?: string | null) {
         return () => {
             alive = false;
         };
-    }, [jsonPath]);
+    }, [jsonPath, eventoId]);
 
     return { log, loading, err };
 }
@@ -282,9 +328,13 @@ const VideoThumbnail: React.FC<{
 
         if (!clip?.storage_path) return;
 
-        const fileUrl = normalizeStaticPath(clip.storage_path);
-        console.log(fileUrl)
-        console.log(clip.storage_path)
+        // ✅ CORREGIDO: Usa el endpoint de stream
+        const fileUrl = getVideoStreamUrl(clip);
+        
+        if (!fileUrl) {
+            console.warn('No se pudo obtener URL de video válida:', clip.storage_path);
+            return;
+        }
 
         const video = document.createElement('video');
         video.src = fileUrl;
@@ -327,7 +377,10 @@ const VideoThumbnail: React.FC<{
         video.addEventListener('loadedmetadata', onLoaded);
         video.addEventListener('seeked', drawFrame);
         video.addEventListener('loadeddata', drawFrame);
-        video.addEventListener('error', () => setThumb(null));
+        video.addEventListener('error', () => {
+            console.error('Error cargando video:', fileUrl);
+            setThumb(null);
+        });
 
         video.load();
 
@@ -336,7 +389,7 @@ const VideoThumbnail: React.FC<{
             video.removeEventListener('seeked', drawFrame);
             video.removeEventListener('loadeddata', drawFrame);
         };
-    }, [clip?.storage_path, width, height]);
+    }, [clip?.storage_path, clip?.id_clip, width, height]);
 
     return (
         <Box
@@ -438,7 +491,6 @@ const HistoryHeader: React.FC<HeaderProps> = ({
                         flexWrap: 'wrap',
                     }}
                 >
-                    {/* HU1: Filtrado por fecha */}
                     <TextField
                         label="Desde"
                         type="date"
@@ -456,7 +508,6 @@ const HistoryHeader: React.FC<HeaderProps> = ({
                         InputLabelProps={{ shrink: true }}
                     />
 
-                    {/* HU2: Filtrado por nivel de confianza */}
                     <Select
                         value={confidence}
                         onChange={handleConfChange}
@@ -472,7 +523,6 @@ const HistoryHeader: React.FC<HeaderProps> = ({
                 </Box>
             </Box>
 
-            {/* Tabs por tipo de evento */}
             <Tabs
                 value={activeCategory}
                 onChange={handleTabChange}
@@ -754,26 +804,29 @@ type DetailProps = {
 };
 
 const EventDetail: React.FC<DetailProps> = ({ evento, onBack }) => {
+    // ✅ Usa el endpoint de backend para servir JSONs
     const { log, loading: loadingLog, err: errLog } = useEventoLog(
-        evento.subclip_path || undefined
+        evento.subclip_path || undefined,
+        evento.id_evento  // ← Añade el ID del evento para priorizar el endpoint
     );
     const { clip } = useClip(evento.id_clip ?? undefined);
-    const videoUrl = clip?.storage_path
-        ? normalizeStaticPath(clip.storage_path)
-        : undefined;
-    console.log('videoUrl', videoUrl);
+    
+    // ✅ CORREGIDO: Usa getVideoStreamUrl para obtener una URL válida
+    const videoUrl = useMemo(() => {
+        return getVideoStreamUrl(clip);
+    }, [clip]);
 
     const timeline = useMemo(() => {
-        if (!log?.logs) return [] as { t: number; top3: string }[];
-        return log.logs.map((l) => {
-            const entries = Object.entries(l.probabilities || {});
-            entries.sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0));
-            const top3 = entries
-                .slice(0, 3)
-                .map(([k, v]) => `${k}: ${(v * 100).toFixed(1)}%`)
-                .join('  ·  ');
-            return { t: l.timestamp_ms, top3 };
-        });
+        // 1. Validamos que el objeto exista
+        const metrics = log?.analisis_ia?.metricas_promedio;
+        if (!metrics) return null;
+
+        // 2. Mapeamos las llaves fijas del objeto a un solo string de resultados
+        // Esto mostrará: Golpe, Peatón, Patada y Forcejeo
+        return Object.entries(metrics)
+            .map(([clase, valor]) => `${clase}: ${(valor * 100).toFixed(1)}%`)
+            .join('  ·  ');
+
     }, [log]);
 
     const category = toCategory(evento.tipo_evento);
@@ -1083,12 +1136,12 @@ const EventDetail: React.FC<DetailProps> = ({ evento, onBack }) => {
                                     </Box>
                                 </Box>
                             </Box>
-                            {videoUrl && (
+
+                            {videoUrl ? (
                                 <CardMedia
-                                    key={videoUrl}  // <--- ¡ESTA ES LA MAGIA!
+                                    key={videoUrl}
                                     component="video"
                                     controls
-                                    autoPlay // Opcional: para que arranque apenas cargue
                                     src={videoUrl}
                                     sx={{
                                         mt: 3,
@@ -1098,9 +1151,14 @@ const EventDetail: React.FC<DetailProps> = ({ evento, onBack }) => {
                                         bgcolor: 'black',
                                         borderRadius: 3,
                                         boxShadow: 3,
-                                        display: 'block'
+                                        display: 'block',
                                     }}
                                 />
+                            ) : (
+                                <Alert severity="warning" sx={{ mt: 3 }}>
+                                    No se puede reproducir el video. Verifica que el backend sirva
+                                    archivos en /api/clips/{evento.id_clip}/stream
+                                </Alert>
                             )}
                         </Box>
                     </Stack>
@@ -1120,9 +1178,9 @@ export const ClipsPage: React.FC = () => {
     const [selected, setSelected] = useState<EventoResponse | null>(null);
 
     // Filtros (HUs)
-    const [dateFrom, setDateFrom] = useState<string>(''); // HU1
-    const [dateTo, setDateTo] = useState<string>(''); // HU1
-    const [confidence, setConfidence] = useState<string>(''); // HU2
+    const [dateFrom, setDateFrom] = useState<string>('');
+    const [dateTo, setDateTo] = useState<string>('');
+    const [confidence, setConfidence] = useState<string>('');
 
     // Por ahora, conexión fija 1 (ajusta según tu app)
     const { data: eventos, loading, error } = useEventos(1);
@@ -1151,7 +1209,6 @@ export const ClipsPage: React.FC = () => {
             eventosDecorados.filter((e) => {
                 if (e._category !== activeCategory) return false;
 
-                // HU1: filtro por rango de fechas
                 if (dateFrom) {
                     const from = new Date(`${dateFrom}T00:00:00`);
                     if (e._timestamp < from) return false;
@@ -1161,15 +1218,12 @@ export const ClipsPage: React.FC = () => {
                     if (e._timestamp > to) return false;
                 }
 
-                // HU2: filtro por nivel de confianza mínimo
                 if (confidence) {
                     const min = parseFloat(confidence);
                     const conf = e.confianza ?? 0;
                     if (conf < min) return false;
                 }
 
-                // HU3 se cumple porque, si hay fecha y confianza,
-                // deben cumplirse todos los criterios para pasar
                 return true;
             }),
         [eventosDecorados, activeCategory, dateFrom, dateTo, confidence]

@@ -72,18 +72,14 @@ export const browserRouter = createBrowserRouter([
             {
                 path: "/reports",
                 element: (
-                    <PublicRoute>
-                        <ReportsPage />
-                    </PublicRoute>
+                    <ReportsPage />
                 ),
             },
             {
                 path: "/admin/workers",
                 // Protegemos SOLO esta página específica
                 element: (
-                    <PublicRoute>
-                        <AdminUserPage />
-                    </PublicRoute>
+                    <AdminUserPage />
                 ),
             }
         ]

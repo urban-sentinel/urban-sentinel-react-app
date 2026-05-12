@@ -1,107 +1,212 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Hls from 'hls.js';
+
+// --- CONFIGURACIÓN DE MediaMTX ---
+// Cambia estos valores según tu entorno. No incluyas las credenciales en la URL
+// para evitar que los navegadores modernos las bloqueen (CORS + deprecación de
+// Basic Auth en URLs: https://developer.chrome.com/blog/deprecating-passwords-in-urls).
+const MTX_HOST = 'localhost:8888';
+const MTX_USER = 'admin';
+const MTX_PASS = 'urban_pass';
+
+// Construye la cabecera Authorization en Base64 para enviarla via XHR/fetch
+const MTX_AUTH_HEADER = `Basic ${btoa(`${MTX_USER}:${MTX_PASS}`)}`;
 
 type UseCameraStreamOptions = {
     cameraId: string;
     rtspUrl: string;
+    /**
+     * Sobreescribe la URL HLS por defecto.
+     * La función recibe el cameraId y debe devolver la URL completa del .m3u8
+     * SIN credenciales embebidas (se inyectan vía xhrSetup).
+     * Ejemplo: (id) => `http://localhost:8888/${id}/index.m3u8`
+     */
     buildUrl?: (cameraId: string) => string;
     autoConnect?: boolean;
 };
 
 export function useCameraStream({ cameraId, rtspUrl, buildUrl, autoConnect = false }: UseCameraStreamOptions) {
     // --- ESTADOS ---
-    const [imgSrc, setImgSrc] = useState<string | null>(null);
     const [activeStream, setActiveStream] = useState<MediaStream | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // --- REFS ---
-    const wsRef = useRef<WebSocket | null>(null);       // Para recibir video (RTSP)
+    const hlsRef = useRef<Hls | null>(null);            // Instancia HLS
     const ingestWsRef = useRef<WebSocket | null>(null); // Para ENVIAR video (Webcam)
     const streamRef = useRef<MediaStream | null>(null);
-    const videoRef = useRef<HTMLVideoElement | null>(null); // Ref opcional para UI
+    const videoRef = useRef<HTMLVideoElement | null>(null); // Ref para el <video> del DOM (HLS lo necesita)
 
     const isWebcamMode = rtspUrl === 'webcam';
 
-    // URL para RECIBIR video (Backend -> Front)
-    const wsUrl = useMemo(
-        () => (buildUrl ? buildUrl(cameraId) : `ws://127.0.0.1:8010/ws/frames/${cameraId}`),
+    // URL HLS de MediaMTX: http://localhost:8888/<camPath>/index.m3u8
+    // MediaMTX usa el nombre del path registrado, que para nosotros coincide con cameraId
+    // (ej: "tapo_urbana" → http://localhost:8888/tapo_urbana/index.m3u8)
+    const hlsUrl = useMemo(
+        () => buildUrl
+            ? buildUrl(cameraId)
+            : `http://${MTX_HOST}/tapo_urbana/index.m3u8`,
         [buildUrl, cameraId]
     );
 
-    // URL para ENVIAR video (Front -> Backend)
+    // URL para ENVIAR video (Front -> Backend), solo webcam
     const ingestUrl = `ws://127.0.0.1:8010/ws/ingest/${cameraId}`;
 
     // --- FUNCIÓN DE LIMPIEZA ---
     const disconnect = useCallback(() => {
-        // 1. Cerrar WS de Recepción
-        if (wsRef.current) {
-            try { wsRef.current.close(); } catch (e) { console.warn(e); }
-            wsRef.current = null;
+        // 1. Destruir instancia HLS
+        if (hlsRef.current) {
+            try { hlsRef.current.destroy(); } catch (e) { console.warn(e); }
+            hlsRef.current = null;
         }
 
-        // 2. Cerrar WS de Ingesta (Envío)
+        // 2. Limpiar el elemento <video> si existe
+        if (videoRef.current) {
+            videoRef.current.pause();
+            videoRef.current.removeAttribute('src');
+            videoRef.current.load();
+        }
+
+        // 3. Cerrar WS de Ingesta (Envío)
         if (ingestWsRef.current) {
             try { ingestWsRef.current.close(); } catch (e) { console.warn(e); }
             ingestWsRef.current = null;
         }
 
-        // 3. Detener Webcam
+        // 4. Detener Webcam
         if (streamRef.current) {
             try { streamRef.current.getTracks().forEach(track => track.stop()); } catch (e) { console.warn(e); }
             streamRef.current = null;
         }
 
-        // 4. Limpiar estados
+        // 5. Limpiar estados
         setIsConnected(false);
-        setImgSrc(null);
-        setActiveStream(null); 
+        setActiveStream(null);
     }, []);
 
     // --- FUNCIÓN DE CONEXIÓN ---
     const connect = useCallback(async () => {
-        disconnect(); 
+        disconnect();
         setError(null);
 
         if (isWebcamMode) {
-            // A) MODO WEBCAM: Obtener stream local
+            // A) MODO WEBCAM: Obtener stream local y enviarlo al backend
             try {
-                // Solicitamos 15 FPS para equilibrar calidad y velocidad de llenado del buffer
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { width: 640, height: 360, frameRate: 15 } 
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 360, frameRate: 15 },
                 });
-                
-                streamRef.current = stream;
-                setActiveStream(stream); // Esto dispara el useEffect de Ingesta
-                setIsConnected(true);
 
+                streamRef.current = stream;
+                setActiveStream(stream); // Dispara el useEffect de Ingesta
+                setIsConnected(true);
             } catch (err) {
-                console.error("Error webcam:", err);
+                console.error('Error webcam:', err);
                 setError('Permiso denegado o webcam no encontrada.');
                 setIsConnected(false);
             }
         } else {
-            // B) MODO RTSP: Conectar WS para recibir frames del backend
-            try {
-                const ws = new WebSocket(wsUrl);
-                wsRef.current = ws;
+            // B) MODO HLS: Reproducir el stream HLS del backend
+            if (!videoRef.current) {
+                setError('No se encontró el elemento <video> para HLS. Asigna videoRef a tu <video>.');
+                return;
+            }
 
-                ws.onopen = () => { setIsConnected(true); setError(null); };
-                ws.onclose = () => setIsConnected(false);
-                ws.onerror = () => { console.warn('Fallo conexión WS video'); setIsConnected(false); };
-                ws.onmessage = (evt) => {
-                    try {
-                        const data = JSON.parse(evt.data);
-                        if (data?.type === 'frame' && data?.jpeg_base64) {
-                            setImgSrc(`data:image/jpeg;base64,${data.jpeg_base64}`);
+            const video = videoRef.current;
+
+            if (Hls.isSupported()) {
+                // Navegadores que soportan HLS via hls.js (Chrome, Firefox, etc.)
+                const hls = new Hls({
+                    // Latencia baja: segmentos cortos y buffer reducido
+                    liveSyncDurationCount: 2,
+                    liveMaxLatencyDurationCount: 4,
+                    lowLatencyMode: true,
+                    backBufferLength: 0,
+
+                    // ─── AUTENTICACIÓN MediaMTX ───────────────────────────────────────────
+                    // Los navegadores modernos bloquean credenciales embebidas en la URL
+                    // (http://user:pass@host) con un error de seguridad.
+                    // hls.js intercepta CADA petición XHR (manifest .m3u8 + segmentos .ts)
+                    // y aquí inyectamos el header Authorization de forma segura.
+                    xhrSetup(xhr) {
+                        xhr.setRequestHeader('Authorization', MTX_AUTH_HEADER);
+                    },
+                    // ─────────────────────────────────────────────────────────────────────
+                });
+
+                hlsRef.current = hls;
+                hls.loadSource(hlsUrl);
+                hls.attachMedia(video);
+
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play().catch(e => console.warn('Autoplay bloqueado:', e));
+                    setIsConnected(true);
+                    setError(null);
+                });
+
+                hls.on(Hls.Events.ERROR, (_, data) => {
+                    if (data.fatal) {
+                        console.error('[HLS] Error fatal:', data);
+                        setIsConnected(false);
+
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                // Intentar recuperar la carga del manifest/segmentos
+                                hls.startLoad();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                hls.recoverMediaError();
+                                break;
+                            default:
+                                setError(`Error HLS: ${data.details}`);
+                                hls.destroy();
+                                hlsRef.current = null;
+                                break;
                         }
-                    } catch { }
-                };
-            } catch (e) {
-                console.error(e);
-                setError('Error interno al crear WebSocket');
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // ─── SAFARI: HLS nativo, no soporta hls.js ───────────────────────────
+                // Safari soporta HLS directamente, pero no permite setRequestHeader
+                // en <video src>. La solución es hacer un fetch() con el header Auth
+                // para obtener el manifest y pasarlo como blob URL al <video>.
+                // Los segmentos .ts los cargará Safari de forma nativa desde las URLs
+                // absolutas del manifest, por lo que MediaMTX debe aceptarlos sin auth
+                // o usarás un proxy. En la mayoría de setups locales esto funciona bien.
+                try {
+                    const manifestResponse = await fetch(hlsUrl, {
+                        headers: { Authorization: MTX_AUTH_HEADER },
+                    });
+
+                    if (!manifestResponse.ok) {
+                        throw new Error(`HTTP ${manifestResponse.status}`);
+                    }
+
+                    const manifestBlob = await manifestResponse.blob();
+                    const blobUrl = URL.createObjectURL(manifestBlob);
+
+                    video.src = blobUrl;
+                    video.addEventListener('loadedmetadata', () => {
+                        video.play().catch(e => console.warn('Autoplay bloqueado:', e));
+                        setIsConnected(true);
+                        setError(null);
+                        // Liberar el blob URL una vez que el video empieza a cargarse
+                        URL.revokeObjectURL(blobUrl);
+                    }, { once: true });
+
+                    video.addEventListener('error', () => {
+                        setIsConnected(false);
+                        setError('Error al reproducir el stream HLS en Safari.');
+                        URL.revokeObjectURL(blobUrl);
+                    }, { once: true });
+                } catch (fetchErr) {
+                    setError(`No se pudo obtener el manifest HLS en Safari: ${fetchErr}`);
+                }
+                // ─────────────────────────────────────────────────────────────────────
+            } else {
+                setError('Tu navegador no soporta HLS. Prueba con Chrome o Firefox.');
             }
         }
-    }, [isWebcamMode, wsUrl, disconnect]);
+    }, [isWebcamMode, hlsUrl, disconnect]);
 
     // --- EFECTO 1: CICLO DE VIDA DE CONEXIÓN ---
     useEffect(() => {
@@ -111,58 +216,52 @@ export function useCameraStream({ cameraId, rtspUrl, buildUrl, autoConnect = fal
 
 
     // --- EFECTO 2: LÓGICA DE INGESTA (ENVÍO DE FRAMES AL BACKEND) ---
-    // Este efecto solo corre cuando tenemos un stream activo y estamos en modo webcam
+    // Solo corre cuando hay un stream activo en modo webcam
     useEffect(() => {
         if (!isWebcamMode || !activeStream || !isConnected) return;
 
         console.log(`[Ingest] Iniciando envío de frames para ${cameraId}...`);
-        
+
         // 1. Crear WebSocket de Ingesta
         const ws = new WebSocket(ingestUrl);
         ingestWsRef.current = ws;
 
         // 2. Elementos auxiliares en memoria (no en el DOM)
         const canvas = document.createElement('canvas');
-        // willReadFrequently optimiza la lectura de píxeles
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        
-        // Creamos un video oculto para leer los frames del stream
+
+        // Video oculto para leer frames del stream de webcam
         const videoHidden = document.createElement('video');
         videoHidden.srcObject = activeStream;
-        videoHidden.muted = true; // Necesario para autoplay
-        videoHidden.play().catch(e => console.error("Error playing hidden video", e));
+        videoHidden.muted = true;
+        videoHidden.play().catch(e => console.error('Error playing hidden video', e));
 
         let intervalId: number;
 
         ws.onopen = () => {
             console.log(`[Ingest] WS Conectado: ${ingestUrl}`);
-            
-            // 3. Intervalo de envío (66ms = ~15 FPS)
-            // Esto ayuda a llenar el buffer de 32 frames del backend más rápido
+
+            // 3. Intervalo de envío a ~15 FPS
             intervalId = window.setInterval(() => {
-                if (ws.readyState === WebSocket.OPEN && ctx && videoHidden.readyState === videoHidden.HAVE_ENOUGH_DATA) {
-                    
-                    // Ajustar canvas al tamaño del video
+                if (
+                    ws.readyState === WebSocket.OPEN &&
+                    ctx &&
+                    videoHidden.readyState === videoHidden.HAVE_ENOUGH_DATA
+                ) {
                     canvas.width = videoHidden.videoWidth;
                     canvas.height = videoHidden.videoHeight;
-                    
-                    // Dibujar frame
                     ctx.drawImage(videoHidden, 0, 0);
-                    
-                    // Obtener Base64 (formato: "data:image/jpeg;base64,.....")
-                    // Calidad 0.6 es suficiente para inferencia y ahorra ancho de banda
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.6); 
-                    
-                    // Quitar el prefijo para enviar solo la data raw
+
+                    // Calidad 0.6 suficiente para inferencia, menor ancho de banda
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
                     const base64Data = dataUrl.split(',')[1];
-                    
-                    // Enviar al backend
+
                     ws.send(JSON.stringify({ frame: base64Data }));
                 }
-            }, 66); 
+            }, 66); // ~15 FPS
         };
 
-        ws.onerror = (e) => console.error("[Ingest] WS Error", e);
+        ws.onerror = (e) => console.error('[Ingest] WS Error', e);
 
         // Cleanup del efecto de ingesta
         return () => {
@@ -175,14 +274,14 @@ export function useCameraStream({ cameraId, rtspUrl, buildUrl, autoConnect = fal
     }, [isWebcamMode, activeStream, isConnected, ingestUrl, cameraId]);
 
 
-    return { 
-        imgSrc,       
-        activeStream,
-        isConnected, 
-        error, 
-        connect, 
+    return {
+        // imgSrc ya no existe: el video HLS se renderiza directamente en el <video> del DOM
+        activeStream,   // Stream de webcam local (para preview o ingesta)
+        isConnected,
+        error,
+        connect,
         disconnect,
         isWebcamMode,
-        videoRef // Ref opcional si se necesita en UI
+        videoRef,       // ⚠️ REQUERIDO para HLS: asignar a <video ref={videoRef} />
     };
 }

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
     Box, Card, CardHeader, CardContent, CardActions, Chip, Button,
-    IconButton, Grid, Stack, Typography, CircularProgress
+    IconButton, Stack, Typography, CircularProgress
 } from '@mui/material';
-import { CalendarMonth, VideocamOff, ArrowBack, OpenInNew } from '@mui/icons-material';
+import { CalendarMonth, VideocamOff, ArrowBack } from '@mui/icons-material';
 import { useCameraStream } from '../infra/useCameraStream';
 import { CameraCard } from './CameraCard';
 import { useConexion } from '../infra/useConexion';
@@ -17,6 +17,7 @@ export type CameraDisplayData = {
     name: string;
     status: CameraStatus;
     habilitada: boolean;
+    rtsp_url: string;
     lastReportCount?: number;
     ubicacion: string;
     conexion: ConexionData;
@@ -27,12 +28,15 @@ const mapConexionToDisplay = (conexion: ConexionData): CameraDisplayData => ({
     conexion_id: conexion.id,
     name: conexion.nombre_camara,
     habilitada: conexion.habilitada,
-    // Mantenemos el status según backend, pero ya no bloqueará la vista
+    rtsp_url: conexion.rtsp_url,
     status: conexion.estado === 'inactiva' ? 'disabled' : 'active',
     lastReportCount: 0,
     ubicacion: conexion.ubicacion,
     conexion: conexion,
 });
+
+// Ancho fijo de cada tarjeta de camara en el grid
+const CARD_WIDTH = 500;
 
 export const CamerasPage = () => {
     const { getAllConexions } = useConexion();
@@ -47,7 +51,7 @@ export const CamerasPage = () => {
             const data = await getAllConexions();
             setCamaras(data ?? []);
         } catch (error) {
-            console.error("Error fetching cameras:", error);
+            console.error('Error fetching cameras:', error);
         } finally {
             setIsLoading(false);
         }
@@ -56,88 +60,156 @@ export const CamerasPage = () => {
     useEffect(() => { fetchCameras(); }, []);
 
     const displayCameras = useMemo(() => camaras.map(mapConexionToDisplay), [camaras]);
-    const selectedCamera = useMemo(() => displayCameras.find(c => c.id === selectedId) ?? null, [selectedId, displayCameras]);
-    
-    // HOOK DE VIDEO
-    // Auto-conectar: Si es webcam, intentamos conectar siempre al entrar al detalle,
-    // ignorando el estado 'active' del backend.
-    const shouldAutoConnect = view === 'detail' && !!selectedCamera && 
-                            (selectedCamera.conexion.rtsp_url === 'webcam' || selectedCamera.status === 'active');
+    const selectedCamera = useMemo(
+        () => displayCameras.find(c => c.id === selectedId) ?? null,
+        [selectedId, displayCameras]
+    );
 
-    const { 
-        imgSrc, 
-        activeStream, 
-        isConnected, 
-        error, 
-        connect, 
-        disconnect, 
-        isWebcamMode 
+    const shouldAutoConnect =
+        view === 'detail' &&
+        !!selectedCamera &&
+        (selectedCamera.conexion.rtsp_url === 'webcam' || selectedCamera.status === 'active');
+
+    const {
+        activeStream,
+        isConnected,
+        error,
+        connect,
+        disconnect,
+        isWebcamMode,
+        videoRef,
     } = useCameraStream({
         cameraId: selectedCamera?.id ?? '',
         rtspUrl: selectedCamera?.conexion.rtsp_url ?? '',
-        autoConnect: shouldAutoConnect
+        autoConnect: shouldAutoConnect,
     });
 
     const activeCount = displayCameras.filter(c => c.status === 'active').length;
 
     return (
-        <Box sx={{ mb: 6, m: 4 }}>
+        <Box sx={{ mb: 6, mx: 3, mt: 3 }}>
+
             {/* HEADER */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4, flexWrap: 'wrap', gap: 2 }}>
-                <Stack direction="row" alignItems="center" spacing={2}>
-                    <Typography variant="h5" fontWeight={700}>Cámaras</Typography>
-                    <Chip label={`${activeCount} Activas`} color="success" size="small" variant="outlined" />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Typography variant="h6" fontWeight={600} letterSpacing={-0.3}>
+                        Camaras
+                    </Typography>
+                    <Chip
+                        label={`${activeCount} activas`}
+                        color="success"
+                        size="small"
+                        variant="outlined"
+                        sx={{ height: 22, fontSize: '0.7rem' }}
+                    />
+                    <Chip
+                        label={`${displayCameras.length} total`}
+                        size="small"
+                        variant="outlined"
+                        sx={{ height: 22, fontSize: '0.7rem', color: 'text.secondary' }}
+                    />
                 </Stack>
                 <Button variant="outlined" startIcon={<CalendarMonth />} size="small">
-                    Filtrar Fecha
+                    Filtrar fecha
                 </Button>
             </Box>
 
             {isLoading ? (
-                <Box display="flex" justifyContent="center" p={4}><CircularProgress /></Box>
+                <Box display="flex" justifyContent="center" p={6}>
+                    <CircularProgress size={28} />
+                </Box>
             ) : (
                 <>
-                    {/* VISTA: GRID */}
+                    {/* VISTA GRID: tarjetas de ancho fijo, sin estirar */}
                     {view === 'grid' && (
-                        <Grid container spacing={3}>
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: 2,
+                                alignItems: 'flex-start',
+                            }}
+                        >
                             {displayCameras.map((camera) => (
-                                <Grid sx={{ xs:12, md: 6, lg: 4 }} key={camera.id}>
+                                <Box
+                                    key={camera.id}
+                                    sx={{
+                                        // Ancho fijo: nunca crece ni se encoge
+                                        width: { xs: '100%', sm: CARD_WIDTH },
+                                        flexShrink: 0,
+                                        flexGrow: 0,
+                                    }}
+                                >
                                     <CameraCard
                                         camera={camera}
                                         onExpand={(id) => { setSelectedId(id); setView('detail'); }}
                                         onReload={fetchCameras}
                                     />
-                                </Grid>
+                                </Box>
                             ))}
-                        </Grid>
+                        </Box>
                     )}
 
-                    {/* VISTA: DETAIL */}
+                    {/* VISTA DETAIL */}
                     {view === 'detail' && selectedCamera && (
-                        <Box>
-                            <Card elevation={0} sx={{ border: 1, borderColor: 'divider', mb: 3, borderRadius: 3 }}>
+                        <Box sx={{ maxWidth: 860, mx: 'auto' }}>
+                            <Card elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: 3 }}>
+
                                 <CardHeader
-                                    avatar={<IconButton onClick={() => { setView('grid'); setSelectedId(null); }}><ArrowBack /></IconButton>}
-                                    title={selectedCamera.name}
-                                    subheader={isWebcamMode ? "Modo Webcam Local" : selectedCamera.ubicacion}
+                                    sx={{ pb: 0 }}
+                                    avatar={
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => { setView('grid'); setSelectedId(null); }}
+                                        >
+                                            <ArrowBack fontSize="small" />
+                                        </IconButton>
+                                    }
+                                    title={
+                                        <Typography variant="subtitle1" fontWeight={600}>
+                                            {selectedCamera.name}
+                                        </Typography>
+                                    }
+                                    subheader={
+                                        <Typography variant="caption" color="text.secondary">
+                                            {isWebcamMode ? 'Modo webcam local' : selectedCamera.ubicacion}
+                                        </Typography>
+                                    }
                                     action={
-                                        <Chip 
-                                            label={selectedCamera.status === 'active' ? 'Active' : 'Disabled (Backend)'} 
-                                            color={selectedCamera.status === 'active' ? 'success' : 'default'} 
-                                            size="small" 
-                                        />
+                                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1, mr: 1 }}>
+                                            <Chip
+                                                label={selectedCamera.status === 'active' ? 'Activa' : 'Inactiva'}
+                                                color={selectedCamera.status === 'active' ? 'success' : 'default'}
+                                                size="small"
+                                            />
+                                            {isConnected && (
+                                                <Chip
+                                                    label="LIVE"
+                                                    color="error"
+                                                    size="small"
+                                                    sx={{ height: 20, fontSize: '0.68rem' }}
+                                                />
+                                            )}
+                                        </Stack>
                                     }
                                 />
-                                <CardContent>
-                                    <Box sx={{ 
-                                        position: 'relative', width: '100%', maxWidth: 800, aspectRatio: '16/9', 
-                                        bgcolor: 'black', mx: 'auto', borderRadius: 2, overflow: 'hidden' 
-                                    }}>
-                                        {/* --- ZONA DE VIDEO SIN BLOQUEO DE ESTADO --- */}
+
+                                <CardContent sx={{ pt: 1.5 }}>
+                                    <Box
+                                        sx={{
+                                            position: 'relative',
+                                            width: '100%',
+                                            aspectRatio: '16/9',
+                                            bgcolor: '#0a0a0a',
+                                            borderRadius: 2,
+                                            overflow: 'hidden',
+                                            border: '1px solid',
+                                            borderColor: 'divider',
+                                        }}
+                                    >
                                         {isWebcamMode ? (
-                                            // MODO WEBCAM
                                             activeStream ? (
-                                                <video 
+                                                <video
                                                     ref={(node) => {
                                                         if (node && activeStream && node.srcObject !== activeStream) {
                                                             node.srcObject = activeStream;
@@ -150,38 +222,64 @@ export const CamerasPage = () => {
                                                     playsInline
                                                 />
                                             ) : (
-                                                <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                                                    {error ? (
-                                                        <Typography color="error">{error}</Typography>
-                                                    ) : (
-                                                        <>
-                                                            <CircularProgress size={30} sx={{ mr: 2 }} />
-                                                            <Typography>Iniciando Webcam...</Typography>
-                                                        </>
-                                                    )}
+                                                <Box sx={{
+                                                    position: 'absolute', inset: 0,
+                                                    display: 'flex', alignItems: 'center',
+                                                    justifyContent: 'center', color: 'grey.600',
+                                                    flexDirection: 'column', gap: 1,
+                                                }}>
+                                                    {error
+                                                        ? <Typography variant="caption" color="error.main">{error}</Typography>
+                                                        : <><CircularProgress size={28} color="inherit" /><Typography variant="caption">Iniciando webcam...</Typography></>
+                                                    }
                                                 </Box>
                                             )
                                         ) : (
-                                            // MODO RTSP (Aquí si respetamos un poco más el estado, o mostramos lo que haya)
-                                            imgSrc ? (
-                                                <img src={imgSrc} alt="Live" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                            ) : (
-                                                <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'grey.500', flexDirection: 'column' }}>
-                                                    {isConnected ? (
-                                                        <Typography>Esperando frames del servidor...</Typography>
-                                                    ) : (
-                                                        <>
-                                                            <VideocamOff sx={{ fontSize: 60 }} />
-                                                            <Typography sx={{ mt: 1 }}>Sin conexión de video</Typography>
-                                                        </>
-                                                    )}
-                                                </Box>
-                                            )
+                                            <>
+                                                <video
+                                                    ref={videoRef}
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    autoPlay
+                                                    muted
+                                                    playsInline
+                                                />
+                                                {!isConnected && !error && (
+                                                    <Box sx={{
+                                                        position: 'absolute', inset: 0,
+                                                        display: 'flex', alignItems: 'center',
+                                                        justifyContent: 'center', flexDirection: 'column',
+                                                        gap: 1, color: 'grey.600',
+                                                    }}>
+                                                        {selectedCamera.status === 'active'
+                                                            ? <><CircularProgress size={28} color="inherit" /><Typography variant="caption">Esperando senal HLS...</Typography></>
+                                                            : <><VideocamOff sx={{ fontSize: 48 }} /><Typography variant="caption">Camara inactiva</Typography></>
+                                                        }
+                                                    </Box>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {error && (
+                                            <Box sx={{
+                                                position: 'absolute', inset: 0,
+                                                bgcolor: 'rgba(0,0,0,0.72)',
+                                                display: 'flex', alignItems: 'center',
+                                                justifyContent: 'center', p: 3, textAlign: 'center',
+                                            }}>
+                                                <Typography variant="caption" color="error.main">{error}</Typography>
+                                            </Box>
                                         )}
                                     </Box>
                                 </CardContent>
-                                <CardActions sx={{ justifyContent: 'flex-end', p: 2 }}>
-                                    <Button onClick={isConnected ? disconnect : connect} variant="contained" size="small">
+
+                                <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 2, pt: 0 }}>
+                                    <Button
+                                        onClick={isConnected ? disconnect : connect}
+                                        variant="contained"
+                                        size="small"
+                                        color={isConnected ? 'error' : 'primary'}
+                                        disableElevation
+                                    >
                                         {isConnected ? 'Desconectar' : 'Conectar'}
                                     </Button>
                                 </CardActions>
