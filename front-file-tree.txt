@@ -1,0 +1,104 @@
+urban-sentinel-react-app
+ ┣ public
+ ┃ ┣ login-illustration.svg
+ ┃ ┣ logo.svg
+ ┃ ┣ record.svg
+ ┃ ┗ vite.svg
+ ┣ src
+ ┃ ┣ app
+ ┃ ┃ ┣ router
+ ┃ ┃ ┃ ┣ guards.tsx
+ ┃ ┃ ┃ ┗ routes.tsx
+ ┃ ┃ ┣ services
+ ┃ ┃ ┃ ┗ httpClient.ts
+ ┃ ┃ ┣ App.css
+ ┃ ┃ ┗ App.tsx
+ ┃ ┣ assets
+ ┃ ┃ ┗ message-alert.mp3
+ ┃ ┣ contexts
+ ┃ ┃ ┣ admin
+ ┃ ┃ ┃ ┗ ui
+ ┃ ┃ ┃ ┃ ┗ AdminUserPage.tsx
+ ┃ ┃ ┣ auth
+ ┃ ┃ ┃ ┣ infra
+ ┃ ┃ ┃ ┃ ┗ useAuth.ts
+ ┃ ┃ ┃ ┣ services
+ ┃ ┃ ┃ ┃ ┗ AuthService.ts
+ ┃ ┃ ┃ ┣ types
+ ┃ ┃ ┃ ┃ ┗ AuthTypes.ts
+ ┃ ┃ ┃ ┗ ui
+ ┃ ┃ ┃ ┃ ┣ ChangePasswordPage.tsx
+ ┃ ┃ ┃ ┃ ┣ LoginPage.tsx
+ ┃ ┃ ┃ ┃ ┣ ResetPasswordPage.tsx
+ ┃ ┃ ┃ ┃ ┗ ValidationPage.tsx
+ ┃ ┃ ┣ cameras
+ ┃ ┃ ┃ ┣ infra
+ ┃ ┃ ┃ ┃ ┣ useCameraControl.ts
+ ┃ ┃ ┃ ┃ ┣ useCameraStream.ts
+ ┃ ┃ ┃ ┃ ┣ useConexion.ts
+ ┃ ┃ ┃ ┃ ┗ useOficina.ts
+ ┃ ┃ ┃ ┣ services
+ ┃ ┃ ┃ ┃ ┣ ConexionService.ts
+ ┃ ┃ ┃ ┃ ┗ OficinaService.ts
+ ┃ ┃ ┃ ┣ types
+ ┃ ┃ ┃ ┃ ┣ ConexionTypes.ts
+ ┃ ┃ ┃ ┃ ┗ OficinaTypes.ts
+ ┃ ┃ ┃ ┗ ui
+ ┃ ┃ ┃ ┃ ┣ CameraCard.tsx
+ ┃ ┃ ┃ ┃ ┣ CamerasPage.tsx
+ ┃ ┃ ┃ ┃ ┣ CreateCameraDialog.tsx
+ ┃ ┃ ┃ ┃ ┗ CreateOficinaDialog.tsx
+ ┃ ┃ ┣ clips
+ ┃ ┃ ┃ ┣ infra
+ ┃ ┃ ┃ ┃ ┣ useClips.ts
+ ┃ ┃ ┃ ┃ ┣ useEvents.ts
+ ┃ ┃ ┃ ┃ ┗ useNotification.ts
+ ┃ ┃ ┃ ┣ services
+ ┃ ┃ ┃ ┃ ┣ ClipService.ts
+ ┃ ┃ ┃ ┃ ┣ EventService.ts
+ ┃ ┃ ┃ ┃ ┗ NotificationService.ts
+ ┃ ┃ ┃ ┣ types
+ ┃ ┃ ┃ ┃ ┣ ClipTypes.ts
+ ┃ ┃ ┃ ┃ ┣ EventTypes.ts
+ ┃ ┃ ┃ ┃ ┗ NotificationTypes.ts
+ ┃ ┃ ┃ ┗ ui
+ ┃ ┃ ┃ ┃ ┣ ClipsPage.tsx
+ ┃ ┃ ┃ ┃ ┗ ClipsPage__.tsx
+ ┃ ┃ ┣ dashboard
+ ┃ ┃ ┃ ┣ types
+ ┃ ┃ ┃ ┃ ┗ Types.ts
+ ┃ ┃ ┃ ┗ ui
+ ┃ ┃ ┃ ┃ ┗ DashboardPage.tsx
+ ┃ ┃ ┗ reports
+ ┃ ┃ ┃ ┗ ui
+ ┃ ┃ ┃ ┃ ┗ ReportPage.tsx
+ ┃ ┣ shared
+ ┃ ┃ ┣ hooks
+ ┃ ┃ ┃ ┣ useAlarmSound.ts
+ ┃ ┃ ┃ ┣ useMessages.ts
+ ┃ ┃ ┃ ┗ useNotificationStream.ts
+ ┃ ┃ ┣ services
+ ┃ ┃ ┃ ┗ MessageService.ts
+ ┃ ┃ ┣ types
+ ┃ ┃ ┃ ┗ types.ts
+ ┃ ┃ ┗ ui
+ ┃ ┃ ┃ ┗ layout
+ ┃ ┃ ┃ ┃ ┣ AppShell.tsx
+ ┃ ┃ ┃ ┃ ┣ Sidebar.tsx
+ ┃ ┃ ┃ ┃ ┗ TopBar.tsx
+ ┃ ┣ index.css
+ ┃ ┗ main.tsx
+ ┣ .gitignore
+ ┣ Dockerfile
+ ┣ eslint.config.js
+ ┣ front-file-tree.txt
+ ┣ index.html
+ ┣ nginx.conf
+ ┣ package-lock.json
+ ┣ package.json
+ ┣ README.md
+ ┣ tailwind.config.js
+ ┣ tsconfig.app.json
+ ┣ tsconfig.json
+ ┣ tsconfig.node.json
+ ┗ vite.config.ts

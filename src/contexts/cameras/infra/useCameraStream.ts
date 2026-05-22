@@ -39,15 +39,16 @@ export function useCameraStream({ cameraId, rtspUrl, buildUrl, autoConnect = fal
 
     const isWebcamMode = rtspUrl === 'webcam';
 
-    // URL HLS de MediaMTX: http://localhost:8888/<camPath>/index.m3u8
-    // MediaMTX usa el nombre del path registrado, que para nosotros coincide con cameraId
-    // (ej: "tapo_urbana" → http://localhost:8888/tapo_urbana/index.m3u8)
-    const hlsUrl = useMemo(
-        () => buildUrl
-            ? buildUrl(cameraId)
-            : `http://${MTX_HOST}/tapo_urbana/index.m3u8`,
-        [buildUrl, cameraId]
-    );
+    const hlsUrl = useMemo(() => {
+        if (buildUrl) return buildUrl(cameraId);
+        
+        let streamPath = cameraId;
+        if (rtspUrl && !isWebcamMode) {
+            const urlParts = rtspUrl.split('/');
+            streamPath = urlParts[urlParts.length - 1]; 
+        }
+        return `http://${MTX_HOST}/${streamPath}/index.m3u8`;
+    }, [buildUrl, cameraId, rtspUrl, isWebcamMode]);
 
     // URL para ENVIAR video (Front -> Backend), solo webcam
     const ingestUrl = `ws://127.0.0.1:8010/ws/ingest/${cameraId}`;
@@ -122,15 +123,6 @@ export function useCameraStream({ cameraId, rtspUrl, buildUrl, autoConnect = fal
                     lowLatencyMode: true,
                     backBufferLength: 0,
 
-                    // ─── AUTENTICACIÓN MediaMTX ───────────────────────────────────────────
-                    // Los navegadores modernos bloquean credenciales embebidas en la URL
-                    // (http://user:pass@host) con un error de seguridad.
-                    // hls.js intercepta CADA petición XHR (manifest .m3u8 + segmentos .ts)
-                    // y aquí inyectamos el header Authorization de forma segura.
-                    xhrSetup(xhr) {
-                        xhr.setRequestHeader('Authorization', MTX_AUTH_HEADER);
-                    },
-                    // ─────────────────────────────────────────────────────────────────────
                 });
 
                 hlsRef.current = hls;

@@ -88,5 +88,22 @@ export const useConexion = () => {
         []
     );
 
-    return { updateConexionEstado, updateHabilitado, getAllConexions, createConexion, loading, error };;
+    const deleteConexion = useCallback(
+        async (idConexion: number): Promise<boolean> => {
+            setLoading(true);
+            setError(null);
+            try {
+                await conexionService.deleteConexion(idConexion);
+                return true;
+            } catch (e: any) {
+                setError(e.message || "Error al eliminar la cámara");
+                throw e;
+            } finally {
+                setLoading(false);
+            }
+        },
+        []
+    );
+
+    return { updateConexionEstado, updateHabilitado, getAllConexions, createConexion, deleteConexion, loading, error };;
 }

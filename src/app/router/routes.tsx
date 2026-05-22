@@ -47,9 +47,9 @@ export const browserRouter = createBrowserRouter([
     {
         // El AppShell se monta UNA VEZ aquí y no se destruye al navegar entre hijos
         element: (
-            <PublicRoute>
+            <PrivateRoute>
                 <AppShell />
-            </PublicRoute>
+            </PrivateRoute>
         ),
         // Todas estas rutas se renderizan donde pusimos el <Outlet /> en AppShell
         children: [

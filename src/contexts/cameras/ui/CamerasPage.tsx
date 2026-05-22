@@ -59,7 +59,11 @@ export const CamerasPage = () => {
 
     useEffect(() => { fetchCameras(); }, []);
 
-    const displayCameras = useMemo(() => camaras.map(mapConexionToDisplay), [camaras]);
+    const displayCameras = useMemo(() => 
+        camaras
+            .filter(c => c.estado !== 'eliminada') 
+            .map(mapConexionToDisplay), 
+    [camaras]);
     const selectedCamera = useMemo(
         () => displayCameras.find(c => c.id === selectedId) ?? null,
         [selectedId, displayCameras]

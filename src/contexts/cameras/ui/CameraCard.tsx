@@ -16,7 +16,7 @@ interface CameraCardProps {
 }
 
 export const CameraCard = ({ camera, onExpand, enableLive = true, onReload }: CameraCardProps) => {
-    const { updateConexionEstado, updateHabilitado } = useConexion();
+    const { updateConexionEstado, updateHabilitado, deleteConexion } = useConexion(); // Añadimos deleteConexion aquíx  
     const [loadingAction, setLoadingAction] = useState(false);
 
     const {
@@ -48,6 +48,20 @@ export const CameraCard = ({ camera, onExpand, enableLive = true, onReload }: Ca
         try {
             await updateHabilitado(camera.conexion_id, !camera.habilitada);
             if (onReload) await onReload();
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoadingAction(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!window.confirm("¿Estás seguro de que deseas eliminar esta cámara del panel? Sus videos guardados se conservarán en el historial.")) return;
+        
+        setLoadingAction(true);
+        try {
+            await deleteConexion(camera.conexion_id);
+            if (onReload) await onReload(); 
         } catch (e) {
             console.error(e);
         } finally {
@@ -243,6 +257,16 @@ export const CameraCard = ({ camera, onExpand, enableLive = true, onReload }: Ca
                     sx={{ fontSize: '0.7rem', py: 0.25, color: 'text.secondary' }}
                 >
                     {camera.habilitada ? 'Sin IA' : 'Con IA'}
+                </Button>
+                <Button
+                    size="small"
+                    variant="text"
+                    color="error"
+                    onClick={handleDelete}
+                    disabled={loadingAction}
+                    sx={{ fontSize: '0.7rem', py: 0.25 }}
+                >
+                    Eliminar 
                 </Button>
             </CardActions>
         </Card>

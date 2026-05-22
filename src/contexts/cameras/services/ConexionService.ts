@@ -30,4 +30,8 @@ export class ConexionService {
         const url = this.path(`/${idConexion}/habilitada?habilitada=${activo}`);
         return this.http.patch<ConexionData>(url, {}, true);
     }
+
+    deleteConexion(idConexion: number): Promise<boolean> {
+        return this.http.delete<boolean>(this.path(`/${idConexion}`), {}, true);
+    }
 }
