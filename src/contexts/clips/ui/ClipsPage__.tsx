@@ -100,7 +100,7 @@ function useEventos(idConexion: number) {
             .finally(() => alive && setLoading(false));
         return () => { alive = false; };
     }, [url]);
-
+    console.log(data)
     return { data, loading, error };
 }
 

@@ -187,7 +187,7 @@ function useEventos(idConexion: number) {
         setLoading(true);
         setError(null);
 
-        const url = `${API_BASE}/api/eventos?limit=200&offset=0&id_conexion=${idConexion}`;
+        const url = `${API_BASE}/api/eventos?limit=200&offset=0`;
 
         fetch(url, { headers: authHeaders })
             .then(async (r) => {
@@ -311,7 +311,6 @@ function useEventoLog(jsonPath?: string | null, eventoId?: number | null) {
 /* ============================
    Miniatura de video
 ============================ */
-
 const VideoThumbnail: React.FC<{
     clipId: number | null | undefined;
     width?: number;
@@ -319,77 +318,41 @@ const VideoThumbnail: React.FC<{
     label?: string;
 }> = ({ clipId, width = 220, height = 124, label }) => {
     const { clip, loading } = useClip(clipId ?? undefined);
-    const [thumb, setThumb] = useState<string | null>(null);
-    const doneRef = useRef(false);
 
-    useEffect(() => {
-        setThumb(null);
-        doneRef.current = false;
+    // Memorizamos la URL del video usando el helper existente
+    const fileUrl = useMemo(() => {
+        return getVideoStreamUrl(clip);
+    }, [clip]);
 
-        if (!clip?.storage_path) return;
+    if (loading) {
+        return (
+            <Box sx={{ width, height, bgcolor: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '0.85rem' }}>
+                Cargando…
+            </Box>
+        );
+    }
 
-        // ✅ CORREGIDO: Usa el endpoint de stream
-        const fileUrl = getVideoStreamUrl(clip);
-        
-        if (!fileUrl) {
-            console.warn('No se pudo obtener URL de video válida:', clip.storage_path);
-            return;
-        }
-
-        const video = document.createElement('video');
-        video.src = fileUrl;
-        video.muted = true;
-        video.crossOrigin = 'anonymous';
-        video.preload = 'metadata';
-
-        const onLoaded = () => {
-            try {
-                const t = Math.max(
-                    0.1,
-                    Math.min(
-                        0.2 * (video.duration || 1),
-                        (video.duration || 1) - 0.1
-                    )
-                );
-                video.currentTime = t;
-            } catch {
-                drawFrame();
-            }
-        };
-
-        const drawFrame = () => {
-            if (doneRef.current) return;
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
-            ctx.drawImage(video, 0, 0, width, height);
-            try {
-                const url = canvas.toDataURL('image/jpeg', 0.7);
-                setThumb(url);
-                doneRef.current = true;
-            } catch {
-                /* noop */
-            }
-        };
-
-        video.addEventListener('loadedmetadata', onLoaded);
-        video.addEventListener('seeked', drawFrame);
-        video.addEventListener('loadeddata', drawFrame);
-        video.addEventListener('error', () => {
-            console.error('Error cargando video:', fileUrl);
-            setThumb(null);
-        });
-
-        video.load();
-
-        return () => {
-            video.removeEventListener('loadedmetadata', onLoaded);
-            video.removeEventListener('seeked', drawFrame);
-            video.removeEventListener('loadeddata', drawFrame);
-        };
-    }, [clip?.storage_path, clip?.id_clip, width, height]);
+    if (!fileUrl) {
+        return (
+            <Box
+                sx={{
+                    width,
+                    height,
+                    flexShrink: 0,
+                    background: 'linear-gradient(135deg, rgba(30,41,59,0.9) 0%, rgba(2,6,23,0.8) 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontWeight: 700,
+                    fontSize: '0.9rem',
+                    letterSpacing: 1,
+                }}
+            >
+                {label || 'SIN CLIP'}
+            </Box>
+        );
+    }
 
     return (
         <Box
@@ -398,27 +361,18 @@ const VideoThumbnail: React.FC<{
                 height,
                 flexShrink: 0,
                 overflow: 'hidden',
-                borderRadius: 1.5,
+                borderRadius: { xs: '16px 16px 0 0', md: '16px 0 0 16px' }, // Match con los bordes de la tarjeta
                 bgcolor: 'black',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontWeight: 700,
-                letterSpacing: 1,
+                position: 'relative'
             }}
         >
-            {thumb ? (
-                <img
-                    src={thumb}
-                    alt="thumbnail"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-            ) : (
-                <Box sx={{ textAlign: 'center', px: 2 }}>
-                    {loading ? 'Cargando…' : label || 'SIN CLIP'}
-                </Box>
-            )}
+            <video
+                src={`${fileUrl}#t=0.5`} // 🔥 El truco mágico: congela el video en el segundo 0.5
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                muted
+                playsInline
+                preload="metadata"
+            />
         </Box>
     );
 };
@@ -802,31 +756,49 @@ type DetailProps = {
     evento: EventoResponse;
     onBack: () => void;
 };
-
 const EventDetail: React.FC<DetailProps> = ({ evento, onBack }) => {
     // ✅ Usa el endpoint de backend para servir JSONs
     const { log, loading: loadingLog, err: errLog } = useEventoLog(
         evento.subclip_path || undefined,
-        evento.id_evento  // ← Añade el ID del evento para priorizar el endpoint
+        evento.id_evento  
     );
     const { clip } = useClip(evento.id_clip ?? undefined);
     
-    // ✅ CORREGIDO: Usa getVideoStreamUrl para obtener una URL válida
+    // ✅ URL del video válida
     const videoUrl = useMemo(() => {
         return getVideoStreamUrl(clip);
     }, [clip]);
 
-    const timeline = useMemo(() => {
-        // 1. Validamos que el objeto exista
+    // 🎯 RESUMEN GENERAL: Métricas promedio del análisis de IA
+    const resumenMetricas = useMemo(() => {
         const metrics = log?.analisis_ia?.metricas_promedio;
         if (!metrics) return null;
-
-        // 2. Mapeamos las llaves fijas del objeto a un solo string de resultados
-        // Esto mostrará: Golpe, Peatón, Patada y Forcejeo
         return Object.entries(metrics)
-            .map(([clase, valor]) => `${clase}: ${(valor * 100).toFixed(1)}%`)
+            .map(([clase, valor]) => `${clase}: ${(Number(valor) * 100).toFixed(1)}%`)
             .join('  ·  ');
+    }, [log]);
 
+    // 🚀 TIMELINE REAL: Mapeamos los logs del JSON cuadro por cuadro para el scrolling list
+    const timelineFrames = useMemo(() => {
+        // Tu backend guarda los frames en la propiedad 'logs'
+        const logsArray = (log as any)?.logs || [];
+        if (!logsArray.length) return [];
+
+        return logsArray.map((frame: any, index: number) => {
+            const probabilities = frame.probabilities || {};
+            
+            // Ordenamos las probabilidades de mayor a menor y tomamos las 3 mejores
+            const top3Str = Object.entries(probabilities)
+                .sort((a: any, b: any) => b - a)
+                .slice(0, 3)
+                .map(([clase, valor]: any) => `${clase}: ${(valor * 100).toFixed(0)}%`)
+                .join(', ');
+
+            return {
+                t: frame.t ?? frame.timestamp_ms ?? (index * 500), // Tiempo en ms
+                top3: top3Str // Texto con el top 3 de aciertos
+            };
+        });
     }, [log]);
 
     const category = toCategory(evento.tipo_evento);
@@ -894,9 +866,7 @@ const EventDetail: React.FC<DetailProps> = ({ evento, onBack }) => {
                             />
                         </Box>
 
-                        <Box
-                            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-                        >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <CalendarMonth fontSize="small" sx={{ color: '#64748b' }} />
                             <Typography
                                 variant="caption"
@@ -917,7 +887,7 @@ const EventDetail: React.FC<DetailProps> = ({ evento, onBack }) => {
                         spacing={3}
                         sx={{ mb: 3 }}
                     >
-                        {/* Panel JSON / timeline */}
+                        {/* Panel JSON / Timeline incremental */}
                         <Card
                             variant="outlined"
                             sx={{
@@ -928,14 +898,17 @@ const EventDetail: React.FC<DetailProps> = ({ evento, onBack }) => {
                             <CardContent sx={{ p: 2 }}>
                                 <Typography
                                     variant="subtitle2"
-                                    sx={{
-                                        fontWeight: 600,
-                                        mb: 1.5,
-                                        color: '#1e293b',
-                                    }}
+                                    sx={{ fontWeight: 600, mb: 1, color: '#1e293b' }}
                                 >
                                     Registro del evento
                                 </Typography>
+
+                                {/* 💡 Inyectamos el resumen global de métricas aquí arriba */}
+                                {resumenMetricas && (
+                                    <Typography variant="body2" sx={{ mb: 2, color: '#475569', fontStyle: 'italic', bgcolor: '#f1f5f9', p: 1, borderRadius: 1 }}>
+                                        🎯 Promedios: {resumenMetricas}
+                                    </Typography>
+                                )}
 
                                 {!evento.subclip_path && (
                                     <Alert severity="info">
@@ -945,25 +918,8 @@ const EventDetail: React.FC<DetailProps> = ({ evento, onBack }) => {
 
                                 {evento.subclip_path && (
                                     <>
-                                        <Typography
-                                            variant="caption"
-                                            sx={{
-                                                color: '#64748b',
-                                                display: 'block',
-                                                mb: 1,
-                                            }}
-                                        >
-                                            {normalizeStaticPath(evento.subclip_path)}
-                                        </Typography>
-
                                         {loadingLog && (
-                                            <Box
-                                                sx={{
-                                                    display: 'flex',
-                                                    justifyContent: 'center',
-                                                    py: 3,
-                                                }}
-                                            >
+                                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
                                                 <CircularProgress size={22} />
                                             </Box>
                                         )}
@@ -974,10 +930,10 @@ const EventDetail: React.FC<DetailProps> = ({ evento, onBack }) => {
                                             </Alert>
                                         )}
 
-                                        {log && (
+                                        {timelineFrames.length > 0 && (
                                             <Box
                                                 sx={{
-                                                    maxHeight: 420,
+                                                    maxHeight: 380,
                                                     overflow: 'auto',
                                                     display: 'grid',
                                                     gap: 1,
@@ -987,9 +943,10 @@ const EventDetail: React.FC<DetailProps> = ({ evento, onBack }) => {
                                                     bgcolor: '#f8fafc',
                                                 }}
                                             >
-                                                {timeline.map((row) => (
+                                                {/* 🚀 Renderizado mapeado seguro desde el nuevo array */}
+                                                {timelineFrames.map((row, index) => (
                                                     <Box
-                                                        key={row.t}
+                                                        key={index}
                                                         sx={{
                                                             display: 'flex',
                                                             alignItems: 'center',
@@ -1002,16 +959,13 @@ const EventDetail: React.FC<DetailProps> = ({ evento, onBack }) => {
                                                     >
                                                         <Typography
                                                             variant="caption"
-                                                            sx={{
-                                                                fontFamily: 'monospace',
-                                                                color: '#334155',
-                                                            }}
+                                                            sx={{ fontFamily: 'monospace', color: '#334155', fontWeight: 'bold' }}
                                                         >
                                                             t={row.t} ms
                                                         </Typography>
                                                         <Typography
                                                             variant="caption"
-                                                            sx={{ color: '#475569' }}
+                                                            sx={{ color: '#475569', maxWidth: '70%', textAlign: 'right' }}
                                                         >
                                                             {row.top3}
                                                         </Typography>
@@ -1024,16 +978,12 @@ const EventDetail: React.FC<DetailProps> = ({ evento, onBack }) => {
                             </CardContent>
                         </Card>
 
-                        {/* Detalles + video */}
+                        {/* Detalles + Reproductor de Video */}
                         <Box sx={{ flex: 1 }}>
                             <Box sx={{ bgcolor: '#f8fafc', borderRadius: 3, p: 2 }}>
                                 <Typography
                                     variant="subtitle2"
-                                    sx={{
-                                        color: '#334155',
-                                        mb: 2,
-                                        fontWeight: 600,
-                                    }}
+                                    sx={{ color: '#334155', mb: 2, fontWeight: 600 }}
                                 >
                                     Detalles del evento
                                 </Typography>
@@ -1043,95 +993,32 @@ const EventDetail: React.FC<DetailProps> = ({ evento, onBack }) => {
                                         gridTemplateColumns: {
                                             xs: 'repeat(2, 1fr)',
                                             md: 'repeat(3, 1fr)',
-                                            lg: 'repeat(6, 1fr)',
                                         },
                                         gap: 2,
                                     }}
                                 >
                                     <Box>
-                                        <Typography
-                                            variant="caption"
-                                            sx={{ color: '#64748b', display: 'block' }}
-                                        >
+                                        <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
                                             Revisado
                                         </Typography>
-                                        <Typography
-                                            variant="body2"
-                                            sx={{ fontWeight: 500, color: '#1e293b' }}
-                                        >
+                                        <Typography variant="body2" sx={{ fontWeight: 500, color: '#1e293b' }}>
                                             {evento.procesado ? 'Sí' : 'No'}
                                         </Typography>
                                     </Box>
                                     <Box>
-                                        <Typography
-                                            variant="caption"
-                                            sx={{ color: '#64748b', display: 'block' }}
-                                        >
+                                        <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
                                             Conexión
                                         </Typography>
-                                        <Typography
-                                            variant="body2"
-                                            sx={{ fontWeight: 500, color: '#1e293b' }}
-                                        >
+                                        <Typography variant="body2" sx={{ fontWeight: 500, color: '#1e293b' }}>
                                             {evento.id_conexion}
                                         </Typography>
                                     </Box>
                                     <Box>
-                                        <Typography
-                                            variant="caption"
-                                            sx={{ color: '#64748b', display: 'block' }}
-                                        >
+                                        <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
                                             Duración
                                         </Typography>
-                                        <Typography
-                                            variant="body2"
-                                            sx={{ fontWeight: 500, color: '#1e293b' }}
-                                        >
+                                        <Typography variant="body2" sx={{ fontWeight: 500, color: '#1e293b' }}>
                                             {evento.subclip_duracion_sec ?? 0} seg
-                                        </Typography>
-                                    </Box>
-                                    <Box>
-                                        <Typography
-                                            variant="caption"
-                                            sx={{ color: '#64748b', display: 'block' }}
-                                        >
-                                            Clip
-                                        </Typography>
-                                        <Typography
-                                            variant="body2"
-                                            sx={{ fontWeight: 500, color: '#1e293b' }}
-                                        >
-                                            {evento.id_clip ?? '—'}
-                                        </Typography>
-                                    </Box>
-                                    <Box>
-                                        <Typography
-                                            variant="caption"
-                                            sx={{ color: '#64748b', display: 'block' }}
-                                        >
-                                            Inicio–Fin
-                                        </Typography>
-                                        <Typography
-                                            variant="body2"
-                                            sx={{ fontWeight: 500, color: '#1e293b' }}
-                                        >
-                                            {(evento.t_inicio_ms ?? 0)}–{(evento.t_fin_ms ?? 0)} ms
-                                        </Typography>
-                                    </Box>
-                                    <Box>
-                                        <Typography
-                                            variant="caption"
-                                            sx={{ color: '#64748b', display: 'block' }}
-                                        >
-                                            Confianza
-                                        </Typography>
-                                        <Typography
-                                            variant="body2"
-                                            sx={{ fontWeight: 500, color: '#1e293b' }}
-                                        >
-                                            {evento.confianza !== null
-                                                ? `${(evento.confianza * 100).toFixed(1)}%`
-                                                : '—'}
                                         </Typography>
                                     </Box>
                                 </Box>
@@ -1146,7 +1033,7 @@ const EventDetail: React.FC<DetailProps> = ({ evento, onBack }) => {
                                     sx={{
                                         mt: 3,
                                         width: '100%',
-                                        height: 420,
+                                        height: 380,
                                         objectFit: 'contain',
                                         bgcolor: 'black',
                                         borderRadius: 3,
@@ -1157,7 +1044,7 @@ const EventDetail: React.FC<DetailProps> = ({ evento, onBack }) => {
                             ) : (
                                 <Alert severity="warning" sx={{ mt: 3 }}>
                                     No se puede reproducir el video. Verifica que el backend sirva
-                                    archivos en /api/clips/{evento.id_clip}/stream
+                                    archivos en /api/clips/{"{id_clip}"}/stream
                                 </Alert>
                             )}
                         </Box>

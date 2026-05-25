@@ -42,6 +42,7 @@ export const ReportsPage: React.FC = () => {
             if (Array.isArray(data)) {
                 setEvents(data);
                 // rango por defecto = [minDate, maxDate]
+                console.log(data)
                 const dates = data
                     .map((e) => e.timestamp_evento.slice(0, 10))
                     .sort();
@@ -61,20 +62,18 @@ export const ReportsPage: React.FC = () => {
         setAppliedTo(dateTo || null);
     };
 
-    // 3) Filtrado por fecha
+    // 3) Filtrado por fecha blindado contra Timezones
     const filteredEvents = useMemo(() => {
         if (!appliedFrom && !appliedTo) return events;
 
         return events.filter((e) => {
-            const d = new Date(e.timestamp_evento);
-            if (appliedFrom) {
-                const from = new Date(`${appliedFrom}T00:00:00`);
-                if (d < from) return false;
-            }
-            if (appliedTo) {
-                const to = new Date(`${appliedTo}T23:59:59.999`);
-                if (d > to) return false;
-            }
+            // Extraemos "YYYY-MM-DD" directamente del string UTC original del evento
+            const eventDateStr = e.timestamp_evento.slice(0, 10); 
+            
+            // Comparación alfabética directa de fechas (ej: "2026-05-25" < "2026-05-25")
+            if (appliedFrom && eventDateStr < appliedFrom) return false;
+            if (appliedTo && eventDateStr > appliedTo) return false;
+            
             return true;
         });
     }, [events, appliedFrom, appliedTo]);

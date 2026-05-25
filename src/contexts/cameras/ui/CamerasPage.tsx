@@ -83,7 +83,7 @@ export const CamerasPage = () => {
         isWebcamMode,
         videoRef,
     } = useCameraStream({
-        cameraId: selectedCamera?.id ?? '',
+        cameraId: selectedCamera?.name.toLowerCase() ?? '', 
         rtspUrl: selectedCamera?.conexion.rtsp_url ?? '',
         autoConnect: shouldAutoConnect,
     });

@@ -26,11 +26,11 @@ export const CameraCard = ({ camera, onExpand, enableLive = true, onReload }: Ca
         isWebcamMode,
         videoRef,
     } = useCameraStream({
-        cameraId: camera.id,
+        cameraId: camera.name.toLowerCase(),
         rtspUrl: camera.rtsp_url,
         autoConnect: enableLive && camera.status === 'active',
     });
-
+    console.log(camera)
     const handleToggleVideo = async () => {
         setLoadingAction(true);
         try {

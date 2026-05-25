@@ -43,10 +43,7 @@ export function useCameraStream({ cameraId, rtspUrl, buildUrl, autoConnect = fal
         if (buildUrl) return buildUrl(cameraId);
         
         let streamPath = cameraId;
-        if (rtspUrl && !isWebcamMode) {
-            const urlParts = rtspUrl.split('/');
-            streamPath = urlParts[urlParts.length - 1]; 
-        }
+        console.log(`http://${MTX_HOST}/${streamPath}/index.m3u8`)
         return `http://${MTX_HOST}/${streamPath}/index.m3u8`;
     }, [buildUrl, cameraId, rtspUrl, isWebcamMode]);
 
@@ -122,7 +119,9 @@ export function useCameraStream({ cameraId, rtspUrl, buildUrl, autoConnect = fal
                     liveMaxLatencyDurationCount: 4,
                     lowLatencyMode: true,
                     backBufferLength: 0,
-
+                    xhrSetup: (xhr, url) => {
+                        xhr.setRequestHeader('Authorization', MTX_AUTH_HEADER);
+                    }
                 });
 
                 hlsRef.current = hls;
