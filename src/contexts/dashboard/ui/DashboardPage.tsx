@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     Box,
     IconButton,
@@ -10,7 +10,9 @@ import {
     Button,
     Divider,
     Paper,
-    Skeleton
+    Skeleton,
+    Stack,
+    Avatar
 } from '@mui/material';
 import {
     Videocam as VideocamIcon,
@@ -18,7 +20,11 @@ import {
     Visibility as VisibilityIcon,
     Archive as ArchiveIcon,
     FiberManualRecord as DotIcon,
-    CalendarMonth
+    CalendarMonth,
+    Assessment,
+    NotificationsActive,
+    Dns,
+    QueryStats
 } from '@mui/icons-material';
 import type { ConexionData, CreateCameraPayload } from '../../cameras/types/ConexionTypes';
 import type { CreateOficinaRequest, OficinaData } from '../../cameras/types/OficinaTypes';
@@ -31,30 +37,19 @@ import { useNotification } from '../../clips/infra/useNotification';
 import type { NotificacionData } from '../types/Types';
 import { CreateOficinaDialog } from '../../cameras/ui/CreateOficinaDialog';
 
-// --- 1. INTERFACES DEL BACKEND ---
-
-
-
-const historyMock = [
-    { id: '1', title: 'Sujeto destruyó cámara', caseNumber: 'GPO001265', severity: 'high', location: 'Av. Abancay', type: 'Patadas', createdISO: '2020-09-12T00:00:00' },
-    { id: '2', title: 'Intento de robo detectado', caseNumber: 'GPO001266', severity: 'low', location: 'Jr. Los Cines', type: 'Golpes', createdISO: '2020-09-13T00:00:00' },
-    { id: '3', title: 'Vandalismo en propiedad', caseNumber: 'GPO001267', severity: 'high', location: 'Plaza de Armas', type: 'Patadas', createdISO: '2020-09-14T00:00:00' }
-];
-
 export const DashboardPage = () => {
     const { getAllConexions, createConexion } = useConexion();
     const { getAllOffices, createOficina } = useOficina();
     const { getAllEvents } = useEvent();
     const { getAllNotifications } = useNotification();
+    
     // --- STATES ---
     const [loading, setLoading] = useState(true);
     const [oficinas, setOficinas] = useState<OficinaData[]>([]);
     const [camaras, setCamaras] = useState<ConexionData[]>([]);
     const [eventos, setEventos] = useState<EventData[]>([]);
     const [notificaciones, setNotificaciones] = useState<NotificacionData[]>([]);
-    const [openCameraDialog, setOpenCameraDialog] = useState(false);
     const [openOficinaDialog, setOpenOficinaDialog] = useState(false);
-
     const [showAddCamera, setShowAddCamera] = useState(false);
 
     const fetchCameras = async () => {
@@ -69,42 +64,41 @@ export const DashboardPage = () => {
 
     const fetchEvents = async () => {
         const dataEvents = await getAllEvents();
-        console.log("Eventos obtenidos:", dataEvents);
         setEventos(dataEvents ?? []);
     };
 
     const fetchNotifications = async () => {
         const dataNotifcations = await getAllNotifications();
-        console.log("Notificaciones obtenidas:", dataNotifcations);
         setNotificaciones(dataNotifcations ?? []);
     };
 
-    // --- FETCH DATA ---
+    // --- FETCH DATA CONSOLIDADO ---
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                fetchCameras();
-                fetchOffices();
-                fetchEvents();
-                fetchNotifications();
+                // Ejecutamos en paralelo para optimizar la carga inicial
+                await Promise.all([
+                    fetchCameras(),
+                    fetchOffices(),
+                    fetchEvents(),
+                    fetchNotifications()
+                ]);
             } catch (error) {
                 console.error("Error fetching dashboard data", error);
             } finally {
                 setLoading(false);
             }
         };
-
         fetchData();
     }, []);
 
-    // Función para manejar el submit del hijo
+    // --- HANDLERS ---
     const handleCreateCamera = async (payload: CreateCameraPayload) => {
-        console.log("Enviando al backend:", payload);
         try {
             setLoading(true);
             await createConexion(payload);
-            fetchCameras();
+            await fetchCameras();
             setShowAddCamera(false);
         } catch (e) {
             console.error(e);
@@ -117,8 +111,8 @@ export const DashboardPage = () => {
         try {
             setLoading(true);
             await createOficina(payload);
-            fetchCameras();
-            setShowAddCamera(false);
+            await fetchCameras();
+            setOpenOficinaDialog(false);
         } catch (e) {
             console.error(e);
         } finally {
@@ -127,15 +121,20 @@ export const DashboardPage = () => {
     };
 
     // --- HELPERS ---
-
     const formatTime = (iso: string) => {
         if (!iso) return '';
         const date = new Date(iso);
         return date.toLocaleTimeString('es-PE', { hour: 'numeric', minute: '2-digit', hour12: true });
     };
 
-    const getSeverityFromConfidence = (confianza: string) => {
-        const val = parseFloat(confianza);
+    const niceDate = (iso: string) => {
+        if (!iso) return '';
+        return new Date(iso).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    };
+
+    const getSeverityFromConfidence = (confianza: any) => {
+        if (confianza === null || confianza === undefined) return 'low';
+        const val = parseFloat(String(confianza));
         if (val >= 0.8 || val >= 80) return 'high';
         if (val >= 0.5 || val >= 50) return 'medium';
         return 'low';
@@ -150,11 +149,24 @@ export const DashboardPage = () => {
         }
     };
 
-    const activeCamerasCount = camaras.filter(c => c.habilitada && c.estado !== 'inactiva').length;
-    const disabledCamerasCount = camaras.filter(c => !c.habilitada || c.estado === 'inactiva').length;
+    // --- METRICAS PROCESADAS ---
+    const activeCamerasCount = useMemo(() => camaras.filter(c => c.habilitada && c.estado !== 'inactiva').length, [camaras]);
+    const disabledCamerasCount = useMemo(() => camaras.filter(c => !c.habilitada || c.estado === 'inactiva').length, [camaras]);
+    
+    const incidentesPendientes = useMemo(() => eventos.filter(e => !e.procesado), [eventos]);
+    
+    // FIX 1: Corregido para extraer el primer evento del array correctamente
+    const ultimaAlertaTexto = useMemo(() => {
+        if (!eventos.length) return "Sin alertas registradas";
+        const ultimo = eventos[0];
+        const camName = camaras.find(c => c.id === ultimo.id_conexion)?.nombre_camara || `CAM_${ultimo.id_conexion}`;
+        return `${ultimo.tipo_evento.toUpperCase()} en ${camName}`;
+    }, [eventos, camaras]);
 
     return (
-        <Box sx={{ mb: 6, margin: 4 }}>
+        <Box sx={{ mb: 6, p: { xs: 1, md: 3 }, bgcolor: '#f8fafc', minHeight: '100vh' }}>
+            
+            {/* Header del Dashboard */}
             <Box sx={{
                 display: 'flex',
                 flexDirection: { xs: 'column', md: 'row' },
@@ -163,56 +175,115 @@ export const DashboardPage = () => {
                 gap: 2,
                 mb: 4
             }}>
-                <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: '#1e293b' }}>
-                    Dashboard
-                </Typography>
+                <Box>
+                    <Typography variant="h4" component="h1" sx={{ fontWeight: 800, color: '#0f172a', letterSpacing: '-0.025em' }}>
+                        Centro de Control de Video
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#64748b', mt: 0.5 }}>
+                        Monitoreo urbano automatizado y detección de violencia en tiempo real mediante Inteligencia Artificial.
+                    </Typography>
+                </Box>
                 <Button
                     variant="outlined"
                     startIcon={<CalendarMonth />}
                     size="small"
-                    sx={{ textTransform: 'none', color: '#475569', borderColor: '#cbd5e1' }}
+                    sx={{ textTransform: 'none', color: '#475569', borderColor: '#cbd5e1', bgcolor: 'white', fontWeight: 600 }}
                 >
-                    Vista general
+                    Vista General COE
                 </Button>
             </Box>
 
+            {/* FILA DE KPIs EJECUTIVOS SUPERIORES */}
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                    <Card sx={{ borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                        <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: '20px !important' }}>
+                            <Avatar sx={{ bgcolor: '#eff6ff', color: '#1d4ed8' }}><Dns /></Avatar>
+                            <Box>
+                                <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>CÁMARAS ACTIVAS</Typography>
+                                <Typography variant="h5" sx={{ fontWeight: 800 }}>{activeCamerasCount} / {camaras.length}</Typography>
+                            </Box>
+                        </CardContent>
+                    </Card>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                    <Card sx={{ borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                        <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: '20px !important' }}>
+                            <Avatar sx={{ bgcolor: '#fef2f2', color: '#b91c1c' }}><NotificationsActive /></Avatar>
+                            <Box>
+                                <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>INCIDENTES ACTIVOS</Typography>
+                                <Typography variant="h5" sx={{ fontWeight: 800, color: '#ef4444' }}>{incidentesPendientes.length}</Typography>
+                            </Box>
+                        </CardContent>
+                    </Card>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                    <Card sx={{ borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                        <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: '20px !important' }}>
+                            <Avatar sx={{ bgcolor: '#fef3c7', color: '#d97706' }}><QueryStats /></Avatar>
+                            <Box sx={{ minWidth: 0 }}>
+                                <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>ÚLTIMA DETECCIÓN</Typography>
+                                {/* FIX 3: noWrap va como prop del componente, no dentro de sx */}
+                                <Typography variant="body1" noWrap sx={{ fontWeight: 700 }}>
+                                    {ultimaAlertaTexto}
+                                </Typography>
+                            </Box>
+                        </CardContent>
+                    </Card>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                    <Card sx={{ borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                        <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: '20px !important' }}>
+                            <Avatar sx={{ bgcolor: '#f0fdf4', color: '#16a34a' }}><Assessment /></Avatar>
+                            <Box>
+                                <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>ESTADO DEL ENTORNO</Typography>
+                                <Typography variant="h5" sx={{ fontWeight: 800, color: '#22c55e' }}>ONLINE</Typography>
+                            </Box>
+                        </CardContent>
+                    </Card>
+                </Grid>
+            </Grid>
+
             <Box component="main">
-                {/* Container principal */}
                 <Grid container spacing={3}>
 
-                    {/* PANEL IZQUIERDO SUPERIOR: CÁMARAS */}
+                    {/* PANEL IZQUIERDO SUPERIOR: LISTA DE CÁMARAS EN VIVO */}
                     <Grid size={{ xs: 12, lg: 8 }}>
-                        <Card sx={{ height: '100%' }}>
+                        <Card sx={{ borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                             <CardContent>
+                                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: '#1e293b' }}>
+                                    Nodos de Videovigilancia Integrados
+                                </Typography>
                                 <Box sx={{ display: 'flex', gap: 3, mb: 3 }}>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                         <DotIcon sx={{ fontSize: 12, color: '#22c55e' }} />
-                                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                            {activeCamerasCount} Activas
+                                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#475569' }}>
+                                            {activeCamerasCount} Procesando Flujo
                                         </Typography>
                                     </Box>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                         <DotIcon sx={{ fontSize: 12, color: '#ef4444' }} />
-                                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                            {disabledCamerasCount} Deshabilitadas/Inactivas
+                                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#475569' }}>
+                                            {disabledCamerasCount} Desconectadas
                                         </Typography>
                                     </Box>
                                 </Box>
 
                                 <Grid container spacing={2}>
                                     {loading ? (
-                                        [1, 2, 3].map(n => (
-                                            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={n}>
-                                                <Skeleton variant="rectangular" height={140} />
+                                        // FIX 2: Se agrega el array [1,2,3,4,5,6] del que se mapean los skeletons
+                                        [1, 2, 3, 4, 5, 6].map(n => (
+                                            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={n}>
+                                                <Skeleton variant="rectangular" height={120} sx={{ borderRadius: 2 }} />
                                             </Grid>
                                         ))
                                     ) : (
                                         camaras.map((camera) => (
-                                            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={camera.id}>
-                                                <Card variant="outlined" sx={{ '&:hover': { boxShadow: 2 } }}>
-                                                    <CardContent>
-                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                                                            <VideocamIcon sx={{ color: '#64748b' }} />
+                                            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={camera.id}>
+                                                <Card variant="outlined" sx={{ borderRadius: 2, '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }, transition: 'all 0.2s' }}>
+                                                    <CardContent sx={{ p: 2 }}>
+                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
+                                                            <VideocamIcon sx={{ color: (camera.habilitada && camera.estado !== 'inactiva') ? '#3b82f6' : '#94a3b8' }} />
                                                             <DotIcon
                                                                 sx={{
                                                                     fontSize: 12,
@@ -220,24 +291,18 @@ export const DashboardPage = () => {
                                                                 }}
                                                             />
                                                         </Box>
-                                                        <Typography
-                                                            variant="subtitle2"
-                                                            sx={{ fontWeight: 600, mb: 0.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                                                        >
+                                                        {/* FIX 3: noWrap como prop del componente */}
+                                                        <Typography variant="subtitle2" noWrap sx={{ fontWeight: 700, mb: 0.5, color: '#1e293b' }}>
                                                             {camera.nombre_camara}
                                                         </Typography>
-                                                        <Typography
-                                                            variant="caption"
-                                                            color="text.secondary"
-                                                            sx={{ display: 'block', mb: 1.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                                                        >
-                                                            {camera.ubicacion || 'Sin ubicación'}
+                                                        <Typography variant="caption" noWrap color="text.secondary" sx={{ display: 'block', mb: 1.5, minHeight: 18 }}>
+                                                            {camera.ubicacion || 'Sin georreferencia'}
                                                         </Typography>
-
                                                         <Chip
-                                                            label={(camera.habilitada && camera.estado !== 'inactiva') ? 'Activo' : 'Inactivo'}
+                                                            label={(camera.habilitada && camera.estado !== 'inactiva') ? 'En servicio' : 'Fuera de servicio'}
                                                             color={(camera.habilitada && camera.estado !== 'inactiva') ? 'success' : 'error'}
                                                             size="small"
+                                                            sx={{ fontWeight: 700, borderRadius: 1, fontSize: '0.7rem', height: 20 }}
                                                         />
                                                     </CardContent>
                                                 </Card>
@@ -245,23 +310,26 @@ export const DashboardPage = () => {
                                         ))
                                     )}
 
-                                    {/* Botón añadir cámara */}
-                                    <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                                    {/* Botón Añadir Cámara */}
+                                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                                         <Card
                                             variant="outlined"
                                             sx={{
                                                 border: '2px dashed #cbd5e1',
+                                                borderRadius: 2,
                                                 cursor: 'pointer',
-                                                '&:hover': { borderColor: '#3b82f6', bgcolor: '#eff6ff' },
+                                                '&:hover': { borderColor: '#3b82f6', bgcolor: '#f0f9ff' },
                                                 height: '100%',
-                                                display: 'flex'
+                                                display: 'flex',
+                                                transition: 'all 0.2s',
+                                                minHeight: 118
                                             }}
                                             onClick={() => setShowAddCamera(true)}
                                         >
-                                            <CardContent sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                                                <AddIcon sx={{ fontSize: 40, color: '#94a3b8' }} />
-                                                <Typography variant="body2" sx={{ fontWeight: 500, color: '#64748b' }}>
-                                                    Añadir cámara
+                                            <CardContent sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 2, gap: 0.5 }}>
+                                                <AddIcon sx={{ fontSize: 28, color: '#64748b' }} />
+                                                <Typography variant="body2" sx={{ fontWeight: 600, color: '#64748b' }}>
+                                                    Vincular Cámara
                                                 </Typography>
                                             </CardContent>
                                         </Card>
@@ -271,48 +339,50 @@ export const DashboardPage = () => {
                         </Card>
                     </Grid>
 
-                    {/* PANEL DERECHO SUPERIOR: ALERTAS RECIENTES */}
+                    {/* PANEL DERECHO SUPERIOR: LOG DE EVENTOS */}
                     <Grid size={{ xs: 12, lg: 4 }}>
-                        <Card sx={{ height: '100%' }}>
+                        <Card sx={{ borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', height: '100%' }}>
                             <CardContent>
-                                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-                                    Eventos Recientes
+                                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: '#0f172a' }}>
+                                    Alertas de Inferencia Directa
                                 </Typography>
-                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    {loading ? <Skeleton variant="rectangular" height={200} /> :
-                                        eventos.length === 0 ? <Typography variant="body2" color="text.secondary">No hay eventos recientes</Typography> :
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 360, overflowY: 'auto', pr: 0.5 }}>
+                                    {loading ? <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2 }} /> :
+                                        eventos.length === 0 ? <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', p: 2 }}>Esperando transmisiones del Transformer Swin3D...</Typography> :
                                             eventos.slice(0, 4).map((evento) => {
                                                 const severity = getSeverityFromConfidence(evento.confianza);
-                                                const cameraName = camaras.find(c => c.id === evento.id_conexion)?.nombre_camara || `Cam ID: ${evento.id_conexion}`;
+                                                const cameraName = camaras.find(c => c.id === evento.id_conexion)?.nombre_camara || `CAM_ID: ${evento.id_conexion}`;
 
                                                 return (
                                                     <Paper
                                                         key={evento.id_evento}
+                                                        variant="outlined"
                                                         sx={{
                                                             p: 2,
                                                             display: 'flex',
-                                                            gap: 2,
+                                                            gap: 1.5,
                                                             borderLeft: `4px solid ${getSeverityBgColor(severity)}`,
-                                                            '&:hover': { boxShadow: 2 }
+                                                            borderRadius: 2,
+                                                            '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }
                                                         }}
                                                     >
-                                                        <Box sx={{ flexGrow: 1 }}>
-                                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                                                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                                        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                                                                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1e293b' }}>
                                                                     {cameraName}
                                                                 </Typography>
-                                                                <Typography variant="caption" sx={{ color: '#64748b' }}>
+                                                                <Typography variant="caption" sx={{ color: '#94a3b8', fontWeight: 500 }}>
                                                                     {formatTime(evento.timestamp_evento)}
                                                                 </Typography>
                                                             </Box>
-                                                            <Typography variant="body2" sx={{ color: '#64748b', mb: 1 }}>
-                                                                {evento.tipo_evento} detectado (Conf: {evento.confianza})
+                                                            <Typography variant="body2" sx={{ color: '#475569', textTransform: 'capitalize', fontWeight: 500, mb: 1 }}>
+                                                                ⚠️ {evento.tipo_evento} detectado {evento.confianza ? `(${ (parseFloat(String(evento.confianza))*100).toFixed(0) }%)` : ''}
                                                             </Typography>
-                                                            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                                                <IconButton size="small">
+                                                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                                                                <IconButton size="small" sx={{ color: '#64748b' }} title="Ver Clip de Evidencia">
                                                                     <VisibilityIcon fontSize="small" />
                                                                 </IconButton>
-                                                                <IconButton size="small">
+                                                                <IconButton size="small" sx={{ color: '#64748b' }} title="Archivar Alerta">
                                                                     <ArchiveIcon fontSize="small" />
                                                                 </IconButton>
                                                             </Box>
@@ -325,74 +395,99 @@ export const DashboardPage = () => {
                         </Card>
                     </Grid>
 
-                    {/* PANEL IZQUIERDO INFERIOR: HISTORIAL */}
+                    {/* PANEL IZQUIERDO INFERIOR: BITÁCORA DE INCIDENTES */}
                     <Grid size={{ xs: 12, lg: 8 }}>
-                        <Card sx={{ height: '100%' }}>
+                        <Card sx={{ borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                             <CardContent>
-                                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-                                    Historial de Casos
+                                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: '#0f172a' }}>
+                                    Incidentes Críticos Recientes
                                 </Typography>
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    {historyMock.map((historyCase) => (
-                                        <Card key={historyCase.id} variant="outlined" sx={{ '&:hover': { boxShadow: 2 } }}>
-                                            <CardContent>
-                                                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
-                                                    <Typography variant="subtitle1" sx={{ fontWeight: 600, flexGrow: 1 }}>
-                                                        {historyCase.title}
-                                                    </Typography>
-                                                    <Chip
-                                                        label={historyCase.severity === 'high' ? 'Alto' : 'Bajo'}
-                                                        color={historyCase.severity === 'high' ? 'error' : 'success'}
-                                                        size="small"
-                                                    />
-                                                </Box>
-                                                <Typography variant="body2" sx={{ color: '#64748b', mb: 2 }}>
-                                                    Caso #{historyCase.caseNumber}
-                                                </Typography>
-                                                <Grid container spacing={2} sx={{ mb: 2 }}>
-                                                    <Grid size={{ xs: 4 }}>
-                                                        <Typography variant="caption" sx={{ color: '#94a3b8' }}>Lugar:</Typography>
-                                                        <Typography variant="body2" sx={{ fontWeight: 500 }}>{historyCase.location}</Typography>
-                                                    </Grid>
-                                                    <Grid size={{ xs: 4 }}>
-                                                        <Typography variant="caption" sx={{ color: '#94a3b8' }}>Tipo:</Typography>
-                                                        <Typography variant="body2" sx={{ fontWeight: 500 }}>{historyCase.type}</Typography>
-                                                    </Grid>
-                                                </Grid>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
+                                    {loading ? (
+                                        <Skeleton variant="rectangular" height={150} sx={{ borderRadius: 2 }} />
+                                    ) : eventos.length === 0 ? (
+                                        <Typography variant="body2" color="text.secondary" sx={{ p: 2, fontStyle: 'italic' }}>
+                                            No se registran vectores de violencia huérfanos. Todo limpio.
+                                        </Typography>
+                                    ) : (
+                                        eventos.slice(0, 3).map((evento) => {
+                                            const severity = getSeverityFromConfidence(evento.confianza);
+                                            const cameraObj = camaras.find(c => c.id === evento.id_conexion);
+                                            const cameraName = cameraObj?.nombre_camara || `NODO_ID_${evento.id_conexion}`;
+                                            const locationText = cameraObj?.ubicacion || "Ubicación de red no especificada";
+                                            const codeString = `EVT-${evento.id_evento.toString().padStart(6, '0')}`;
+
+                                            return (
+                                                <Card key={evento.id_evento} variant="outlined" sx={{ borderRadius: 2.5, '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }, transition: 'all 0.2s' }}>
+                                                    <CardContent sx={{ p: 2.5 }}>
+                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, mb: 1 }}>
+                                                            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1e293b' }}>
+                                                                Alerta de {evento.tipo_evento.toUpperCase()} en {cameraName}
+                                                            </Typography>
+                                                            <Chip
+                                                                label={severity === 'high' ? 'Crítico' : severity === 'medium' ? 'Moderado' : 'Bajo'}
+                                                                color={severity === 'high' ? 'error' : severity === 'medium' ? 'warning' : 'success'}
+                                                                size="small"
+                                                                sx={{ fontWeight: 700, borderRadius: 1 }}
+                                                            />
+                                                        </Box>
+                                                        <Typography variant="caption" sx={{ color: '#64748b', fontFamily: 'monospace', display: 'block', mb: 2, fontSize: '0.75rem' }}>
+                                                            Identificador de Auditoría: {codeString}
+                                                        </Typography>
+                                                        <Grid container spacing={2} sx={{ mb: 1 }}>
+                                                            <Grid size={{ xs: 12, sm: 4 }}>
+                                                                <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', fontWeight: 600 }}>DIRECCIÓN EN BASE DE DATOS:</Typography>
+                                                                <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155' }}>{locationText}</Typography>
+                                                            </Grid>
+                                                            <Grid size={{ xs: 6, sm: 4 }}>
+                                                                <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', fontWeight: 600 }}>VECTOR IA:</Typography>
+                                                                <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155', textTransform: 'capitalize' }}>{evento.tipo_evento}</Typography>
+                                                            </Grid>
+                                                            <Grid size={{ xs: 6, sm: 4 }}>
+                                                                <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', fontWeight: 600 }}>FECHA REGISTRO UTC:</Typography>
+                                                                <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155' }}>{niceDate(evento.timestamp_evento)} - {formatTime(evento.timestamp_evento)}</Typography>
+                                                            </Grid>
+                                                        </Grid>
+                                                    </CardContent>
+                                                </Card>
+                                            );
+                                        })
+                                    )}
                                 </Box>
                             </CardContent>
                         </Card>
                     </Grid>
 
-                    {/* PANEL DERECHO INFERIOR: NOTIFICACIONES */}
+                    {/* PANEL DERECHO INFERIOR: HISTORIAL DE NOTIFICACIONES */}
                     <Grid size={{ xs: 12, lg: 4 }}>
-                        <Card sx={{ height: '100%' }}>
+                        <Card sx={{ borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', height: '100%' }}>
                             <CardContent>
-                                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-                                    Notificaciones
+                                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: '#0f172a' }}>
+                                    Notificaciones de Canal SMS / Push
                                 </Typography>
-                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    {loading ? <Skeleton /> :
-                                        notificaciones.length === 0 ? <Typography variant="caption">Sin notificaciones</Typography> :
-                                            notificaciones.map((note, index) => (
-                                                <Box key={index}>
-                                                    <Typography variant="caption" sx={{ color: '#94a3b8', mb: 0.5, display: 'block' }}>
-                                                        {note.created_at ? formatTime(note.created_at) : 'Hoy'} | {note.canal}
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 380, overflowY: 'auto' }}>
+                                    {loading ? <Skeleton variant="rectangular" height={150} sx={{ borderRadius: 2 }} /> :
+                                        notificaciones.length === 0 ? <Typography variant="caption" sx={{ fontStyle: 'italic', p: 2 }}>No se registran envíos salientes de alertas.</Typography> :
+                                            notificaciones.slice(0, 5).map((note, index) => (
+                                                <Box key={index} sx={{ px: 0.5 }}>
+                                                    <Typography variant="caption" sx={{ color: '#94a3b8', mb: 0.5, display: 'block', fontWeight: 600, fontFamily: 'monospace' }}>
+                                                        {note.created_at ? `${niceDate(note.created_at)} - ${formatTime(note.created_at)}` : 'Sincronizado'} | VÍA {note.canal.toUpperCase()}
                                                     </Typography>
                                                     <Typography
                                                         variant="body2"
                                                         sx={{
                                                             fontWeight: 500,
-                                                            color: note.canal === 'ALERTA' ? '#ef4444' : '#22c55e'
+                                                            color: '#334155',
+                                                            bgcolor: '#f8fafc',
+                                                            p: 1.5,
+                                                            borderRadius: 2,
+                                                            borderLeft: `3px solid ${note.canal.toLowerCase().includes('app') ? '#3b82f6' : '#ef4444'}`
                                                         }}
                                                     >
                                                         {note.mensaje}
                                                     </Typography>
                                                     {index < notificaciones.length - 1 && (
-                                                        <Divider sx={{ mt: 2 }} />
+                                                        <Divider sx={{ mt: 1.5, opacity: 0.4 }} />
                                                     )}
                                                 </Box>
                                             ))}
@@ -412,11 +507,11 @@ export const DashboardPage = () => {
                 onOpenCreateOficina={() => setOpenOficinaDialog(true)}
             />
 
-                <CreateOficinaDialog
-                    open={openOficinaDialog}
-                    onClose={() => setOpenOficinaDialog(false)}
-                    onSubmit={handleCreateOficina}
-                />
+            <CreateOficinaDialog
+                open={openOficinaDialog}
+                onClose={() => setOpenOficinaDialog(false)}
+                onSubmit={handleCreateOficina}
+            />
         </Box>
     );
 };

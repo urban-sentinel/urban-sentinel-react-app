@@ -15,6 +15,7 @@ import { ReportsPage } from "../../contexts/reports/ui/ReportPage";
 
 // Guards
 import { AdminRoute, PrivateRoute, PublicRoute } from "./guards";
+import { AlertasPage } from "../../contexts/alerts/ui/AlertsPage";
 
 function BlankPage({ title }: { title: string }) {
     return (
@@ -63,7 +64,7 @@ export const browserRouter = createBrowserRouter([
             },
             {
                 path: "/alerts",
-                element: <BlankPage title="Alertas" />,
+                element: <AlertasPage />,
             },
             {
                 path: "/history",

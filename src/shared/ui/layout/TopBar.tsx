@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import {
     AppBar,
     Avatar,
@@ -13,15 +13,18 @@ import {
     ListItemText,
     Divider,
     useTheme,
-    useMediaQuery
+    useMediaQuery,
+    ListItemIcon,
+    Chip
 } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import SearchIcon from "@mui/icons-material/Search";
 import MenuIcon from "@mui/icons-material/Menu";
+import ErrorIcon from "@mui/icons-material/Error";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useNotification } from "../../../contexts/clips/infra/useNotification";
 import type { NotificacionData } from "../../../contexts/dashboard/types/Types";
 
-// Definimos el ancho del sidebar colapsado aquí para sincronizarlo con el layout
 const DRAWER_WIDTH_COLLAPSED = 72;
 
 interface TopBarProps {
@@ -59,10 +62,21 @@ export const TopBar: React.FC<TopBarProps> = ({ title = "Dashboard", userName, o
     };
 
     useEffect(() => {
-        fetchNotifications()
+        fetchNotifications();
     }, []);
 
-    const displayedNotifications = notificaciones.slice(0, 8);
+    // Helper para dar formato rápido a la hora en las notificaciones
+    const formatNotificationTime = (isoString?: string) => {
+        if (!isoString) return "Reciente";
+        try {
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('es-PE', { hour: 'numeric', minute: '2-digit', hour12: true });
+        } catch {
+            return isoString;
+        }
+    };
+
+    const displayedNotifications = useMemo(() => notificaciones.slice(0, 8), [notificaciones]);
 
     return (
         <AppBar
@@ -72,15 +86,12 @@ export const TopBar: React.FC<TopBarProps> = ({ title = "Dashboard", userName, o
             sx={{
                 borderBottom: 1,
                 borderColor: "divider",
-                // CORRECCIÓN CLAVE:
-                // 1. En Desktop (lg), el ancho es 100% MENOS el ancho del sidebar
-                // 2. Empujamos la barra a la derecha (ml) lo que mide el sidebar
                 width: { xs: '100%', lg: `calc(100% - ${DRAWER_WIDTH_COLLAPSED}px)` },
                 ml: { xs: 0, lg: `${DRAWER_WIDTH_COLLAPSED}px` },
-                // El zIndex ya no necesita ser super alto, lo estándar funciona bien
+                bgcolor: 'white'
             }}
         >
-            <Toolbar sx={{ gap: 2 }}>
+            <Toolbar sx={{ gap: 2, minHeight: 70 }}>
                 {isMobile && (
                     <IconButton
                         edge="start"
@@ -93,84 +104,99 @@ export const TopBar: React.FC<TopBarProps> = ({ title = "Dashboard", userName, o
                     </IconButton>
                 )}
 
+                {/* Buscador Superior */}
                 <Box
                     sx={{
                         flex: 1,
-                        maxWidth: 520,
-                        ml: { xs: 0, lg: 0 },
-                        px: 1.5,
-                        py: 0.5,
-                        borderRadius: 2,
-                        bgcolor: "background.default",
-                        border: 1,
-                        borderColor: "divider",
+                        maxWidth: 420,
+                        px: 2,
+                        py: 0.75,
+                        borderRadius: 2.5,
+                        bgcolor: "#f1f5f9",
                         display: "flex",
                         alignItems: "center",
-                        gap: 1,
+                        gap: 1.5,
                     }}
                 >
-                    <SearchIcon fontSize="small" />
+                    <SearchIcon fontSize="small" sx={{ color: '#64748b' }} />
                     <InputBase
-                        placeholder="Buscar..."
-                        sx={{ flex: 1 }}
+                        placeholder="Buscar incidentes, cámaras o reportes..."
+                        sx={{ flex: 1, fontSize: '0.875rem', color: '#334155' }}
                     />
                 </Box>
 
-                <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 1.5 }}>
+                {/* Sección Derecha de Perfil y Alertas */}
+                <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 2 }}>
                     {userName && (
                         <Typography
                             variant="body2"
                             sx={{
                                 display: { xs: 'none', md: 'block' },
-                                fontWeight: 500,
-                                color: '#1e293b'
+                                fontWeight: 600,
+                                color: '#334155'
                             }}
                         >
                             {userName}
                         </Typography>
                     )}
 
+                    {/* Botón de Notificaciones con Badge */}
                     <IconButton
                         ref={anchorRef}
-                        size="large"
+                        size="medium"
                         onClick={handleToggle}
-                        sx={{ border: '1px solid transparent' }}
+                        sx={{ 
+                            bgcolor: isOpen ? '#f1f5f9' : 'transparent',
+                            color: unreadCount ? '#ef4444' : '#64748b',
+                            transition: 'all 0.2s',
+                            '&:hover': { bgcolor: '#f1f5f9' }
+                        }}
                     >
                         <Badge
                             color="error"
                             badgeContent={unreadCount || undefined}
-                            variant={unreadCount ? "standard" : "dot"}
+                            max={99}
+                            sx={{
+                                '& .MuiBadge-badge': {
+                                    fontWeight: 700,
+                                    fontSize: '0.7rem',
+                                    height: 18,
+                                    minWidth: 18
+                                }
+                            }}
                         >
-                            <NotificationsIcon />
+                            <NotificationsIcon fontSize="medium" />
                         </Badge>
                     </IconButton>
 
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: '#3b82f6' }}>
-                        {userName ? userName.charAt(0).toUpperCase() : 'U'}
+                    <Avatar sx={{ width: 36, height: 36, bgcolor: '#3b82f6', fontWeight: 600, fontSize: '0.95rem', boxShadow: '0 2px 4px rgba(59,130,246,0.2)' }}>
+                        {userName ? userName.charAt(0).toUpperCase() : 'R'}
                     </Avatar>
                 </Box>
 
+                {/* 🔄 POPUP MENÚ DE NOTIFICACIONES TOTALMENTE CUADRADO Y COMPACTO */}
                 <Menu
                     id="notifications-menu"
                     anchorEl={anchorRef.current}
                     open={isOpen}
                     onClose={handleClose}
-                    onClick={handleClose}
                     disableScrollLock={true}
                     slotProps={{
                         paper: {
                             elevation: 4,
                             sx: {
-                                width: 360,
-                                maxHeight: 400,
+                                width: 380,
+                                maxHeight: 480,
                                 mt: 1.5,
-                                overflow: 'visible',
+                                borderRadius: 3,
+                                overflow: 'hidden',
+                                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
                                 '&:before': {
                                     content: '""',
                                     display: 'block',
                                     position: 'absolute',
                                     top: 0,
-                                    right: 14,
+                                    right: 18,
                                     width: 10,
                                     height: 10,
                                     bgcolor: 'background.paper',
@@ -184,36 +210,87 @@ export const TopBar: React.FC<TopBarProps> = ({ title = "Dashboard", userName, o
                     anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                     sx={{ zIndex: 1300 }}
                 >
-                    <Box sx={{ px: 2, pt: 1, pb: 1 }}>
-                        <Typography variant="subtitle1" fontWeight={600}>
-                            Notificaciones ({unreadCount})
+                    {/* Encabezado del Popover */}
+                    <Box sx={{ px: 2.5, pt: 2, pb: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0f172a' }}>
+                            Alertas de Monitoreo
                         </Typography>
+                        <Chip 
+                            label={`${unreadCount} pendientes`} 
+                            size="small" 
+                            sx={{ bgcolor: '#fef2f2', color: '#ef4444', fontWeight: 700, fontSize: '0.75rem' }} 
+                        />
                     </Box>
                     <Divider />
 
-                    {displayedNotifications.length > 0 ? (
-                        displayedNotifications.map((n) => (
-                            <MenuItem key={n.id} onClick={handleClose}>
-                                <ListItemText
-                                    primary={n.mensaje}
-                                    secondary={n.created_at}
-                                />
-                            </MenuItem>
-                        ))
-                    ) : (
-                        <MenuItem disabled>
-                            <ListItemText primary="No hay notificaciones nuevas" />
-                        </MenuItem>
-                    )}
+                    {/* Contenedor con Scroll para los items */}
+                    <Box sx={{ maxHeight: 340, overflowY: 'auto' }}>
+                        {displayedNotifications.length > 0 ? (
+                            displayedNotifications.map((n) => {
+                                // Evaluamos si es una alerta crítica de la IA para cambiarle el icono
+                                const esAlerta = n.mensaje.toLowerCase().includes("alerta") || n.mensaje.toLowerCase().includes("forcejeo");
+                                
+                                return (
+                                    <MenuItem 
+                                        key={n.id} 
+                                        onClick={handleClose}
+                                        sx={{
+                                            py: 1.5,
+                                            px: 2.5,
+                                            // 🔥 LA CORRECCIÓN CLAVE: Rompe el nowrap y permite saltos de línea fluidos
+                                            whiteSpace: 'normal', 
+                                            wordBreak: 'break-word',
+                                            alignItems: 'flex-start',
+                                            borderBottom: '1px solid #f1f5f9',
+                                            transition: 'background 0.2s',
+                                            '&:hover': { bgcolor: '#f8fafc' }
+                                        }}
+                                    >
+                                        <ListItemIcon sx={{ mt: 0.25, minWidth: 32 }}>
+                                            {esAlerta ? (
+                                                <ErrorIcon sx={{ color: '#ef4444', fontSize: 20 }} />
+                                            ) : (
+                                                <CheckCircleIcon sx={{ color: '#22c55e', fontSize: 20 }} />
+                                            )}
+                                        </ListItemIcon>
+                                        <ListItemText
+                                            primary={n.mensaje}
+                                            secondary={formatNotificationTime(n.created_at)}
+                                            primaryTypographyProps={{ 
+                                                variant: 'body2', 
+                                                fontWeight: 500, 
+                                                color: '#334155', 
+                                                lineHeight: 1.4,
+                                                mb: 0.5 
+                                            }}
+                                            secondaryTypographyProps={{ 
+                                                variant: 'caption', 
+                                                color: '#94a3b8',
+                                                fontWeight: 600,
+                                                fontFamily: 'monospace'
+                                            }}
+                                        />
+                                    </MenuItem>
+                                );
+                            })
+                        ) : (
+                            <Box sx={{ py: 4, px: 2, textAlign: 'center' }}>
+                                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                                    No se registran eventos huérfanos en la cola.
+                                </Typography>
+                            </Box>
+                        )}
+                    </Box>
 
+                    {/* Footer si hay más de 8 notificaciones en Postgres */}
                     {unreadCount > 8 && (
                         <Box>
                             <Divider />
-                            <MenuItem sx={{ justifyContent: "center" }}>
-                                <Typography variant="body2" color="primary">
-                                    Ver todas las notificaciones ({unreadCount})
+                            <Box sx={{ p: 1, bgcolor: '#f8fafc', textAlign: 'center' }}>
+                                <Typography variant="caption" sx={{ fontWeight: 700, color: '#3b82f6', cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}>
+                                    Ver todas las notificaciones en el centro de control
                                 </Typography>
-                            </MenuItem>
+                            </Box>
                         </Box>
                     )}
                 </Menu>
